@@ -1,0 +1,5 @@
+# Never commit plaintext lead data to the public repo — only the encrypted payload.
+leads.json
+leads-data.js
+*.csv
+node_modules/
