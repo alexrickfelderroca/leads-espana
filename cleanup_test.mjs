@@ -17,7 +17,7 @@ const snap = await getDocs(collection(db, 'leads'));
 const dirty = [];
 snap.forEach(d => {
   const x = d.data();
-  if ((x.estado && x.estado !== 'pendiente') || x.gestionadoPor || x.fechaReunion || x.horaReunion || x.notas) {
+  if ((x.estado && x.estado !== 'pendiente') || x.gestionadoPor || x.fechaReunion || x.horaReunion || x.notas || x.developer) {
     dirty.push({ id: d.id, nombre: x.nombre, estado: x.estado, por: x.gestionadoPor });
   }
 });
@@ -30,7 +30,7 @@ if (dirty.length > 10) {
 }
 for (const d of dirty) {
   await updateDoc(doc(db, 'leads', d.id), {
-    estado: 'pendiente', gestionadoPor: '', fechaReunion: null, horaReunion: null, notas: '',
+    estado: 'pendiente', gestionadoPor: '', fechaReunion: null, horaReunion: null, developer: '', notas: '',
     actualizadoEn: serverTimestamp()
   });
 }

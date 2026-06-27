@@ -28,7 +28,7 @@ console.log('OK. Seeding', leads.length, 'leads…');
 // (only written on the initial load, never overwritten afterwards).
 const CATALOG_FIELDS = ['nombre','contacto','sector','ciudad','provincia','telefono','telefonoRaw','wa',
   'telefonos','email','mapsUrl','rating','reviews','score','prio','notasOrigen','origen'];
-const TRACKING_FIELDS = ['estado','fechaReunion','horaReunion','gestionadoPor','notas'];
+const TRACKING_FIELDS = ['estado','fechaReunion','horaReunion','developer','gestionadoPor','notas'];
 
 // SEED_MODE=catalog → only update catalog fields, preserving everyone's progress.
 const CATALOG_ONLY = process.env.SEED_MODE === 'catalog';

@@ -31,6 +31,8 @@ const MOTIV = [
 const WA_TEMPLATE = "Hola{contacto} 👋, te escribo porque trabajo creando páginas web para empresas del sector y me ha gustado mucho {nombre}. ¿Te puedo enseñar una propuesta sin compromiso?";
 
 const PRELOAD_SECTORS = ["Construcción","Pintura","Fontanería/Climatización","Electricidad/Solar","Carpintería"];
+const DEVELOPERS = ["Alex","Guille","Dani"];   // asistentes de reunión (developers)
+const MEET_MIN = 60;                            // duración asumida por reunión (min) para detectar solapes
 const LEVEL = { pendiente:0, llamado:1, reunion:2, vendido:3 };
 const ESTADO_LABEL = { pendiente:"Por llamar", llamado:"Llamado", reunion:"Reunión", vendido:"Vendido" };
 
@@ -212,6 +214,7 @@ function updateCallerChip() {
 let LEADS = [], byId = {}, firstRender = true, pendingLocal = new Set(), notesOpen = new Set();
 let Q = "", F = { sector:"", prio:"", estado:"", city:"", sort:"prio" };
 let filtered = [], rendered = 0; const CHUNK = 36;
+let currentView = "leads", calDev = "";
 
 function bootData() {
   DB.subscribe((leads, changed, err) => {
@@ -228,8 +231,99 @@ function bootData() {
         patchCard(id, remote);
       });
     } else { applyFilters(); }
+    if (currentView === "calendario") renderCalendar();   // mantener el calendario en vivo
   });
   bindUI();
+  setupNav();
+}
+
+/* ===================================================================
+   VISTAS (Métricas / Leads / Calendario)
+   =================================================================== */
+function showView(name) {
+  currentView = name;
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
+  document.querySelectorAll(".navlink").forEach(n => n.classList.toggle("active", n.dataset.view === name));
+  $("mainnav").classList.remove("open");
+  try { localStorage.setItem("cc_view", name); } catch(e){}
+  if (name === "calendario") renderCalendar();
+  window.scrollTo(0, 0);
+}
+function setupNav() {
+  $("mainnav").addEventListener("click", e => { const b = e.target.closest("[data-view]"); if (b) showView(b.dataset.view); });
+  $("navToggle").addEventListener("click", e => { e.stopPropagation(); $("mainnav").classList.toggle("open"); });
+  document.addEventListener("click", e => { if (!e.target.closest("#mainnav") && !e.target.closest("#navToggle")) $("mainnav").classList.remove("open"); });
+  $("brandHome").addEventListener("click", () => window.scrollTo({ top:0, behavior:"smooth" }));
+  $("devFilter").addEventListener("click", e => {
+    const b = e.target.closest("[data-dev]"); if (!b) return;
+    calDev = b.dataset.dev;
+    $("devFilter").querySelectorAll(".devchip").forEach(c => c.classList.toggle("on", c.dataset.dev === calDev));
+    renderCalendar();
+  });
+  // restaura la última vista usada
+  let v = "leads"; try { v = localStorage.getItem("cc_view") || "leads"; } catch(e){}
+  if (!["metricas","leads","calendario"].includes(v)) v = "leads";
+  showView(v);
+}
+
+/* ===================================================================
+   CALENDARIO + detección de conflictos de developer
+   =================================================================== */
+function timeToMin(t) { if (!t) return 0; const m = String(t).split(":"); return (+m[0]||0)*60 + (+m[1]||0); }
+function meetingLeads() {
+  // leads con reunión agendada (reunión o vendido) y fecha
+  return LEADS.filter(l => (l.estado === "reunion" || l.estado === "vendido") && l.fechaReunion);
+}
+// devuelve el lead en conflicto (mismo developer, misma fecha, < MEET_MIN de diferencia), o null
+function findConflict(developer, date, time, excludeId) {
+  if (!developer || !date || !time) return null;
+  const t = timeToMin(time);
+  for (const l of meetingLeads()) {
+    if (l.extId === excludeId) continue;
+    if (l.developer !== developer || l.fechaReunion !== date) continue;
+    if (Math.abs(timeToMin(l.horaReunion) - t) < MEET_MIN) return l;
+  }
+  return null;
+}
+const DOW = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+const MON = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function fmtDayHead(date) {
+  const [y,m,d] = date.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  return { dd: DOW[dt.getDay()] + " " + d, dn: d + " " + MON[m-1] + " " + y, dt };
+}
+function renderCalendar() {
+  const el = $("calAgenda"); if (!el) return;
+  let meets = meetingLeads();
+  if (calDev) meets = meets.filter(l => l.developer === calDev);
+  $("calCount").textContent = meets.length + (meets.length === 1 ? " reunión" : " reuniones");
+  if (!meets.length) {
+    el.innerHTML = `<div class="cal-empty"><div class="big">Sin reuniones agendadas</div>${calDev ? "Nadie con "+esc(calDev)+" todavía." : "Agenda una desde la fase «Reunión» de un lead."}</div>`;
+    return;
+  }
+  // agrupar por fecha
+  const byDate = {};
+  meets.forEach(l => { (byDate[l.fechaReunion] = byDate[l.fechaReunion] || []).push(l); });
+  const todayStr = todayISO();
+  const html = Object.keys(byDate).sort().map(date => {
+    const items = byDate[date].sort((a,b) => timeToMin(a.horaReunion) - timeToMin(b.horaReunion));
+    const h = fmtDayHead(date);
+    const rows = items.map(l => {
+      const dev = l.developer ? `<span class="devtag dev-${esc(l.developer)}"><span class="devdot"></span>${esc(l.developer)}</span>` : "";
+      const who = l.gestionadoPor ? `agendó <b>${esc(l.gestionadoPor)}</b>` : "";
+      return `<div class="cal-item${l.estado==='vendido'?' sold':''}">`+
+        `<div class="time">${esc(l.horaReunion||"—")}</div>`+
+        `<div class="info"><div class="nm">${esc(l.nombre)}</div>`+
+          `<div class="sub">${esc(l.sector||"")}${l.ciudad?" · "+esc(l.ciudad):""}${who?" · "+who:""}${l.estado==='vendido'?' · VENTA':''}</div></div>`+
+        dev + `</div>`;
+    }).join("");
+    return `<div class="cal-day${date===todayStr?" today":""}"><div class="cal-day-head"><span class="dd">${esc(h.dd)}</span><span class="dn">${esc(h.dn)}</span></div><div class="cal-items">${rows}</div></div>`;
+  }).join("");
+  el.innerHTML = html;
+}
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
 }
 
 function setLive(on) {
@@ -442,8 +536,9 @@ function cardEl(l) {
     return `<div class="${st}" data-step="${si}"><div class="sk">${mark}</div><div class="sl">${label}</div></div>`;
   }).join("");
 
+  const devtag = l.developer ? `<span class="devtag dev-${esc(l.developer)}"><span class="devdot"></span>${esc(l.developer)}</span>` : "";
   const meetHtml = (lv >= 2 && l.fechaReunion)
-    ? `<div class="meet"><span class="mlab">Reunión</span><span class="mval">${fmtDate(l.fechaReunion)}${l.horaReunion?" · "+l.horaReunion:""}</span><button data-editmeet>editar</button></div>` : "";
+    ? `<div class="meet"><span class="mlab">Reunión</span><span class="mval">${fmtDate(l.fechaReunion)}${l.horaReunion?" · "+l.horaReunion:""}</span>${devtag}<button data-editmeet>editar</button></div>` : "";
 
   const by = l.gestionadoPor ? `<span class="byline">Gestionado por <b>${esc(l.gestionadoPor)}</b></span>` : `<span class="byline">Sin asignar</span>`;
 
@@ -460,7 +555,9 @@ function cardEl(l) {
         (l.mapsUrl ? `<a class="la maps" target="_blank" rel="noopener" href="${escAttr(l.mapsUrl)}">${ic("pin")}Maps</a>` : `<span class="la dis">${ic("pin")}—</span>`)+
       `</div>`+
       `<div class="funnel">${steps}</div>`+
-      `<div class="dtpick"><input type="date" value="${l.fechaReunion||""}"><input type="time" value="${l.horaReunion||"10:00"}"><button class="ok" data-okmeet>Guardar</button></div>`+
+      `<div class="dtpick"><input type="date" value="${l.fechaReunion||todayISO()}"><input type="time" value="${l.horaReunion||"10:00"}">`+
+        `<select class="dev-sel"><option value="">Developer…</option>${DEVELOPERS.map(d=>`<option value="${d}"${l.developer===d?" selected":""}>${esc(d)}</option>`).join("")}</select>`+
+        `<button class="ok" data-okmeet>Guardar</button><div class="dtpick-msg"></div></div>`+
       meetHtml+
       `<div class="lfoot">${by}<button class="notebtn${l.notas?" has":""}" data-note>${ic("note")} Nota</button></div>`+
       `<div class="notewrap"><textarea placeholder="Notas de la llamada: con quién hablaste, objeciones, cuándo volver…">${esc(l.notas||"")}</textarea></div>`+
@@ -483,9 +580,19 @@ function bindGrid() {
     const okMeet = e.target.closest("[data-okmeet]");
     if (okMeet) {
       const dp = card.querySelector(".dtpick");
-      const d = dp.querySelector('input[type=date]').value, t = dp.querySelector('input[type=time]').value;
-      if (!d) { toast("Pon una fecha"); return; }
-      const patch = { estado:"reunion", fechaReunion:d, horaReunion:t };
+      const d = dp.querySelector('input[type=date]').value;
+      const t = dp.querySelector('input[type=time]').value;
+      const dev = dp.querySelector('.dev-sel').value;
+      const msg = dp.querySelector('.dtpick-msg');
+      msg.classList.remove("ok");
+      if (!d || !t) { msg.textContent = "Pon fecha y hora."; return; }
+      if (!dev) { msg.textContent = "Elige un developer para la reunión."; return; }
+      const conflict = findConflict(dev, d, t, id);
+      if (conflict) {
+        msg.textContent = `Ocupado — ${dev} ya tiene reunión el ${fmtDate(d)} a las ${conflict.horaReunion} (${conflict.nombre}). Cambia la hora o el developer.`;
+        return;
+      }
+      const patch = { estado:"reunion", fechaReunion:d, horaReunion:t, developer:dev };
       if (!lead.gestionadoPor) patch.gestionadoPor = caller();
       await mutate(id, patch); return;
     }
@@ -514,7 +621,7 @@ async function handleStep(id, lead, si, lv, card) {
   } else if (si === lv) { // step back one level
     const target = ["pendiente","llamado","reunion","vendido"][si-1];
     patch.estado = target;
-    if (LEVEL[target] < 2) { patch.fechaReunion = null; patch.horaReunion = null; }
+    if (LEVEL[target] < 2) { patch.fechaReunion = null; patch.horaReunion = null; patch.developer = ""; } // ya no hay reunión
     if (target === "pendiente") patch.gestionadoPor = ""; // back to untouched → clear assignee
 
   } else if (si === 2 && lv >= 2) { // edit meeting datetime without changing level
@@ -551,6 +658,7 @@ function bindUI() {
     const open = $("sectorChips").classList.toggle("expanded");
     $("chipsToggle").classList.toggle("open", open);
     $("chipsToggle").innerHTML = (open ? "Ver menos" : "Ver todos") + ic("chevron");
+    $("sectorChips").scrollLeft = 0;   // evita que los chips queden cortados al desplegar tras scrollear
   });
   $("fSector").addEventListener("change", e => { F.sector = e.target.value; syncSectorActive(); applyFilters(); });
   $("fPrio").addEventListener("change", e => { F.prio = e.target.value; applyFilters(); });
@@ -634,7 +742,9 @@ function ic(n){
     trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
     repeat:'<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
     plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
-    chevron:'<path d="m6 9 6 6 6-6"/>'
+    chevron:'<path d="m6 9 6 6 6-6"/>',
+    menu:'<line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/>',
+    calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'
   };
   const fill = n==='star' ? ' style="fill:currentColor;stroke:none"' : '';
   return `<svg class="ic" viewBox="0 0 24 24"${fill}>${P[n]||""}</svg>`;
@@ -648,6 +758,7 @@ function setupStaticIcons() {
   $("addIc").innerHTML = ic("plus");
   $("callerEdit").innerHTML = ic("repeat");
   $("chipsToggle").innerHTML = "Ver todos" + ic("chevron");
+  $("navToggle").innerHTML = ic("menu");
 }
 function setupVideo() {
   const v = $("bgvideo"); if (!v) return;

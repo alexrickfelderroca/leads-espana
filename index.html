@@ -555,6 +555,82 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 @media(min-width:1600px){
   .grid{grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
 }
+
+/* ==================== NAV + VIEWS + CALENDARIO ==================== */
+:root{ --dev-alex:#C9A86A; --dev-guille:#6EA8FE; --dev-dani:#2FBF71; }
+.view{display:none}
+.view.active{display:block}
+
+/* brand is now a button (clic -> arriba) */
+.brand{background:transparent;border:0;padding:0;cursor:pointer;display:flex;align-items:center;gap:12px}
+.brand:hover .logo{filter:brightness(1.1)}
+
+/* nav */
+header.top .wrap{position:relative;justify-content:flex-start;gap:14px}
+.mainnav{display:flex;align-items:center;gap:5px}
+.navlink{background:transparent;border:1px solid transparent;color:var(--muted);font-family:var(--head-wide);font-weight:700;
+  text-transform:uppercase;letter-spacing:.07em;font-size:12px;padding:8px 15px;border-radius:var(--radius-sm);cursor:pointer;transition:.15s}
+.navlink:hover{color:var(--text)}
+.navlink.active{color:var(--text);background:linear-gradient(180deg,var(--raised),var(--panel-2));border-color:var(--line-2);box-shadow:inset 0 1px 0 var(--edge)}
+.hright{margin-left:auto}
+.navtoggle{display:none;width:40px;height:40px;border-radius:var(--radius-sm);border:1px solid var(--line-2);
+  background:linear-gradient(180deg,var(--raised),var(--panel-2));color:var(--text);align-items:center;justify-content:center}
+.navtoggle svg.ic{width:20px;height:20px;stroke:var(--text)}
+#callerName{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+
+@media(max-width:860px){
+  .mainnav{position:absolute;top:calc(100% + 6px);right:0;flex-direction:column;align-items:stretch;gap:4px;
+    background:var(--panel);border:1px solid var(--line-2);border-radius:var(--radius);padding:8px;min-width:190px;
+    box-shadow:0 24px 60px -22px #000;display:none;z-index:70}
+  .mainnav.open{display:flex}
+  .navlink{text-align:left;font-size:13px;padding:11px 14px}
+  .navtoggle{display:flex}
+  #callerName{max-width:84px}
+}
+
+/* ==================== CALENDARIO ==================== */
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.dev-filter{display:flex;gap:8px;flex-wrap:wrap}
+.devchip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);background:var(--panel);color:var(--muted);
+  font-family:var(--head-wide);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:12px;
+  padding:8px 13px;border-radius:var(--radius-sm);cursor:pointer;transition:.15s}
+.devchip:hover{border-color:var(--silver-2);color:var(--text)}
+.devchip.on{color:var(--text);background:linear-gradient(180deg,var(--raised),var(--navy-2));border-color:var(--silver-2);box-shadow:inset 0 1px 0 var(--edge)}
+.devdot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dev-Alex .devdot{background:var(--dev-alex)} .dev-Guille .devdot{background:var(--dev-guille)} .dev-Dani .devdot{background:var(--dev-dani)}
+.cal-count{color:var(--muted);font-size:13px}
+.cal-day{margin-bottom:20px}
+.cal-day-head{display:flex;align-items:baseline;gap:10px;margin:0 0 11px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.cal-day-head .dd{font-family:var(--head);font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:15px;color:var(--text)}
+.cal-day-head .dn{font-family:var(--mono);font-size:12px;color:var(--faint)}
+.cal-day.today .cal-day-head .dd{color:var(--amber)}
+.cal-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px}
+.cal-item{display:flex;align-items:center;gap:14px;border:1px solid var(--line);background:var(--panel);border-radius:var(--radius-sm);
+  padding:12px 14px;box-shadow:inset 0 1px 0 var(--edge)}
+.cal-item.sold{border-color:rgba(201,168,106,.3)}
+.cal-item .time{font-family:var(--mono);font-weight:600;font-size:19px;color:var(--text);min-width:52px;letter-spacing:-.02em}
+.cal-item .info{flex:1;min-width:0}
+.cal-item .nm{font-family:var(--head-wide);font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-item .sub{font-size:11px;color:var(--faint);margin-top:3px;font-family:var(--mono)}
+.cal-item .sub b{color:var(--muted)}
+.devtag{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);border-radius:var(--radius-xs);
+  padding:5px 10px;font-family:var(--head-wide);font-weight:700;text-transform:uppercase;font-size:10.5px;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
+.devtag .devdot{width:7px;height:7px}
+.devtag.dev-Alex{color:var(--dev-alex);border-color:rgba(201,168,106,.4)} .devtag.dev-Alex .devdot{background:var(--dev-alex)}
+.devtag.dev-Guille{color:var(--dev-guille);border-color:rgba(110,168,254,.4)} .devtag.dev-Guille .devdot{background:var(--dev-guille)}
+.devtag.dev-Dani{color:var(--dev-dani);border-color:rgba(47,191,113,.4)} .devtag.dev-Dani .devdot{background:var(--dev-dani)}
+.cal-empty{text-align:center;color:var(--faint);padding:54px 20px;font-style:italic}
+.cal-empty .big{font-family:var(--head);font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-size:16px;font-style:normal;margin-bottom:8px}
+
+/* dtpick: developer select + mensaje de conflicto */
+.dtpick{align-items:center}
+.dtpick .dev-sel{appearance:none;-webkit-appearance:none;background:var(--navy-2) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%239A9FA8' stroke-width='1.6'><path d='M2 4l4 4 4-4'/></svg>") no-repeat right 9px center;
+  border:1px solid var(--line-2);border-radius:var(--radius-sm);color:var(--text);padding:9px 28px 9px 10px;font-family:var(--head-wide);font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;cursor:pointer}
+.dtpick .dev-sel:focus{outline:0;border-color:var(--silver-2)}
+.dtpick-msg{flex-basis:100%;font-size:12px;color:var(--red);font-family:var(--mono);margin-top:3px;line-height:1.4}
+.dtpick-msg:empty{display:none}
+.meet .devtag{margin-left:8px}
+.chips.expanded{overflow-x:visible}
 </style>
 </head>
 <body>
@@ -599,13 +675,19 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 <div id="app">
   <header class="top">
     <div class="wrap">
-      <div class="brand">
-        <div class="logo">1000 <span class="v">VENTAS</span></div>
-        <div class="tag">Command Center</div>
-      </div>
+      <button class="brand" id="brandHome" title="Ir arriba">
+        <span class="logo">1000 <span class="v">VENTAS</span></span>
+        <span class="tag">Command Center</span>
+      </button>
+      <nav class="mainnav" id="mainnav">
+        <button class="navlink" data-view="metricas">Métricas</button>
+        <button class="navlink active" data-view="leads">Leads</button>
+        <button class="navlink" data-view="calendario">Calendario</button>
+      </nav>
       <div class="hright">
         <div class="live" id="liveBadge"><span class="pulse"></span> <span id="liveTxt">En vivo</span></div>
         <div class="caller-chip" id="callerChip"><span class="av" id="callerAv">?</span><span id="callerName">—</span><button id="callerEdit" title="Cambiar">⟳</button></div>
+        <button class="navtoggle" id="navToggle" aria-label="Menú" title="Menú"></button>
       </div>
     </div>
   </header>
@@ -613,8 +695,8 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
   <div class="wrap">
     <div id="cfgbanner"></div>
 
-    <!-- DASHBOARD -->
-    <section class="dash">
+    <!-- DASHBOARD (Métricas) -->
+    <section class="dash view" id="view-metricas">
       <h2 class="section-label">Panel de operaciones</h2>
       <div class="dash-grid">
         <div class="panel accent prog">
@@ -648,6 +730,8 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
       <div class="panel leaderboard"><div class="lb-rows" id="callerRank"></div></div>
     </section>
 
+    <!-- LEADS -->
+    <section class="view active" id="view-leads">
     <!-- TOOLBAR -->
     <div class="toolbar">
       <div class="tb-row">
@@ -689,6 +773,22 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 
     <div class="grid" id="grid"></div>
     <div id="sentinel"></div>
+    </section>
+
+    <!-- CALENDARIO -->
+    <section class="view" id="view-calendario">
+      <h2 class="section-label">Calendario de reuniones</h2>
+      <div class="cal-head">
+        <div class="dev-filter" id="devFilter">
+          <button class="devchip on" data-dev="">Todos</button>
+          <button class="devchip dev-Alex" data-dev="Alex"><span class="devdot"></span>Alex</button>
+          <button class="devchip dev-Guille" data-dev="Guille"><span class="devdot"></span>Guille</button>
+          <button class="devchip dev-Dani" data-dev="Dani"><span class="devdot"></span>Dani</button>
+        </div>
+        <div class="cal-count mono" id="calCount"></div>
+      </div>
+      <div id="calAgenda"></div>
+    </section>
   </div>
 </div>
 
