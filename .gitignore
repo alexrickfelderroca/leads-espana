@@ -1,5 +1,12 @@
-# Never commit plaintext lead data to the public repo — only the encrypted payload.
+# Never commit lead data or secrets to the public repo. Leads live in Firebase
+# (behind auth); these local files are only for the seeder and local demo preview.
 leads.json
 leads-data.js
+leads-enc.js
+leads-normalized.json
+leads-mock.js
+firebase-config.json
 *.csv
 node_modules/
+package-lock.json
+.playwright-mcp/

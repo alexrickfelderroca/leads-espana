@@ -1,28 +1,28 @@
-# Leads — Negocios sin web (España)
+# 1000 Ventas · Command Center
 
-Panel privado para gestionar la prospección de negocios españoles **sin página web** (datos públicos de Google Maps). Pensado para llamar/escribir por WhatsApp desde el móvil y llevar el control de a quién ya has contactado.
+CRM de equipo **en tiempo real** para la captación telefónica B2B (gremios y autónomos). Todo el equipo entra con una contraseña compartida desde cualquier dispositivo y ve los cambios al instante.
 
-**Web:** se publica con GitHub Pages (ver más abajo).
-**Acceso:** protegido por contraseña. Contraseña actual: `serres2026` — para cambiarla, sustituye `PW_HASH` en `index.html` por el SHA-256 de la nueva, o pídeme que la cambie.
+**Acceso:** contraseña del equipo `1000ventas`.
+**Backend:** Firebase (Firestore + Auth). Sin Firebase configurado, la web arranca en **modo DEMO local** (datos de ejemplo, sin sync) para poder previsualizarla.
 
-## Qué incluye
-- **820 leads** ordenados por prioridad (demanda + reputación + contactable).
-- Botones **Llamar** (`tel:`), **WhatsApp** (`wa.me` con mensaje precargado), **Maps** y **Email** que funcionan en cualquier móvil.
-- **Seguimiento de llamadas**: marca cada lead (Por llamar → Llamado → Volver a llamar → Interesado → Cliente cerrado / No interesado), con notas y fecha de último contacto. Se guarda solo en tu navegador.
-- Barra de progreso, búsqueda y filtros por ciudad, sector, prioridad y estado.
-- **Exportar / Importar** tu progreso (copia de seguridad o pasarlo a otro dispositivo) y tema claro/oscuro.
+## Funcionalidad
+- **919 leads** clasificados por sector (820 de Google Maps + 99 del directorio de gremios del tablón de Sabadell).
+- **Embudo de 3 fases** por lead: **Llamado → Reunión agendada (con día y hora) → Venta**. Progresivo, editable y reversible. Registra qué llamador gestionó cada lead.
+- **Dashboard en vivo:** barra de progreso hacia el 100 %, contadores de llamados/reuniones/ventas, tasas de conversión y rankings por sector (más «sí», más llamadas, más ventas). Se actualiza solo al marcar tics, en todos los dispositivos.
+- Buscador, filtros por sector/ciudad/fase, añadir leads (manual o pegando una lista), pantalla de carga con mensajes motivadores, tema oscuro tipo «sala de ventas».
 
 ## Archivos
-- `index.html` — la app (autocontenida).
-- `leads-data.js` — los datos embebidos (funciona también abriendo el archivo en local).
-- `leads.json` — los mismos datos en JSON.
-- `build.js` — regenera los datos desde el scrape original.
+- `index.html` — estructura + diseño (sistema visual command-center).
+- `app.js` — lógica (capa de datos Firebase + demo, login, embudo, dashboard, tiempo real).
+- `config.js` — configuración (pega aquí tu `firebaseConfig`).
+- `build_seed.js` — normaliza/clasifica y fusiona los leads → `leads-normalized.json`.
+- `seed_firestore.mjs` — carga inicial de los leads en Firestore.
+- `SETUP-FIREBASE.md` — guía paso a paso para conectar Firebase.
 
-## Regenerar los datos
-```bash
-node build.js
-```
-Lee el scrape de Google Maps desde la carpeta de origen y reescribe `leads.json` + `leads-data.js`.
+## Puesta en marcha
+1. Sigue **[SETUP-FIREBASE.md](SETUP-FIREBASE.md)** y pega el `firebaseConfig` en `config.js`.
+2. `npm install firebase` y crea `firebase-config.json` (ver el script).
+3. `node seed_firestore.mjs` para cargar los 919 leads.
+4. Publica con GitHub Pages (rama `main`, raíz). La web queda en `https://<usuario>.github.io/<repo>/`.
 
-## Publicar (GitHub Pages)
-Settings → Pages → Branch `main` / `/ (root)`. La web queda en `https://<usuario>.github.io/<repo>/`.
+> El diseño no usa el típico look de IA: paleta navy/ámbar/esmeralda, tipografías Bricolage Grotesque + Work Sans + Geist Mono, bordes definidos en vez de sombras difusas, maquetación en grid de panel.
