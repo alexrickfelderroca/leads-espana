@@ -242,7 +242,7 @@ function setLive(on) {
 /* ---------- dashboard ---------- */
 function computeStats() {
   let llamados=0, reuniones=0, ventas=0;
-  const sec = {};
+  const sec = {}, callers = {};
   for (const l of LEADS) {
     const lv = LEVEL[l.estado] || 0;
     if (lv >= 1) llamados++;
@@ -254,14 +254,22 @@ function computeStats() {
     if (lv >= 1) sec[s].llamadas++;
     if (lv >= 2) sec[s].reuniones++;
     if (lv >= 3) sec[s].ventas++;
+    if (l.gestionadoPor && lv >= 1) {
+      const p = l.gestionadoPor;
+      if (!callers[p]) callers[p] = { llamadas:0, reuniones:0, ventas:0 };
+      callers[p].llamadas++;
+      if (lv >= 2) callers[p].reuniones++;
+      if (lv >= 3) callers[p].ventas++;
+    }
   }
-  return { total: LEADS.length, llamados, reuniones, ventas, sec };
+  return { total: LEADS.length, llamados, reuniones, ventas, sec, callers };
 }
 let prevStats = { total:0, llamados:0, reuniones:0, ventas:0 };
 function updateDashboard() {
   const s = computeStats();
   const pct = s.total ? Math.round(s.llamados / s.total * 100) : 0;
   $("pBar").style.width = pct + "%";
+  const bb = $("pBar").parentElement; if (bb) bb.classList.toggle("full", pct >= 100);
   tween($("pNum"), prevStats.pctRaw || 0, pct, "");
   prevStats.pctRaw = pct;
   $("pTotal").textContent = s.total;
@@ -275,6 +283,29 @@ function updateDashboard() {
   $("cConv").textContent = (s.llamados ? Math.round(s.ventas/s.llamados*100) : 0) + "%";
   prevStats.llamados = s.llamados; prevStats.reuniones = s.reuniones; prevStats.ventas = s.ventas; prevStats.total = s.total;
   renderRanks(s.sec);
+  renderCallerRank(s.callers);
+}
+function renderCallerRank(callers) {
+  const el = $("callerRank"); if (!el) return;
+  const me = caller();
+  const arr = Object.entries(callers).map(([name, v]) => ({
+    name, ...v, pts: v.ventas*100 + v.reuniones*10 + v.llamadas
+  })).sort((a,b) => b.ventas-a.ventas || b.reuniones-a.reuniones || b.llamadas-a.llamadas);
+  if (!arr.length) { el.innerHTML = `<div class="empty">Aún sin actividad — ¡sé el primero en marcar!</div>`; return; }
+  const maxV = Math.max(1, ...arr.map(a=>a.ventas));
+  el.innerHTML = arr.map((a, i) => {
+    const pos = i+1, mine = a.name === me;
+    return `<div class="lb-row${mine?" me":""}${pos<=3?" r"+pos:""}">`+
+      `<div class="lb-pos lb-p${pos<=3?pos:0}">${pos}</div>`+
+      `<div class="lb-name">${esc(a.name)}${mine?' <span class="lb-you">tú</span>':''}</div>`+
+      `<div class="lb-stats">`+
+        `<span class="lb-st"><b class="mono">${a.llamadas}</b> llam.</span>`+
+        `<span class="lb-st"><b class="mono">${a.reuniones}</b> reun.</span>`+
+        `<span class="lb-st lb-v"><b class="mono">${a.ventas}</b> ventas</span>`+
+      `</div>`+
+      `<div class="lb-bar"><i style="width:${Math.round(a.ventas/maxV*100)}%"></i></div>`+
+    `</div>`;
+  }).join("");
 }
 function renderRanks(sec) {
   const entries = Object.entries(sec);
@@ -591,7 +622,7 @@ function tween(el, from, to, suffix){
 function ic(n){
   const P={
     phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
-    wa:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+    wa:'<path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20l1.2-4.7A8.5 8.5 0 1 1 21 11.5Z"/><path d="M9 9.5c.4 1.2 1.3 2.1 2.5 2.5.3.1.7 0 .9-.3l.3-.4c.2-.3.5-.3.8-.2l1 .5c.3.2.4.5.2.8-.5.6-1.3.9-2 .7-1.9-.4-3.4-1.9-3.8-3.8-.1-.7.1-1.4.7-1.9.3-.2.7-.1.8.2l.5 1c.1.3.1.6-.2.8l-.4.3c-.3.2-.4.6-.3.9Z"/>',
     pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
     user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
     star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
