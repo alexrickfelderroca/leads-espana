@@ -631,6 +631,51 @@ header.top .wrap{position:relative;justify-content:flex-start;gap:14px}
 .dtpick-msg:empty{display:none}
 .meet .devtag{margin-left:8px}
 .chips.expanded{overflow-x:visible}
+
+/* ==================== CALENDARIO — rejilla tipo semana ==================== */
+.cal-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cal-nav{display:flex;align-items:center;gap:8px}
+.cal-navbtn{width:36px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--line-2);background:linear-gradient(180deg,var(--raised),var(--panel-2));color:var(--text);display:flex;align-items:center;justify-content:center}
+.cal-navbtn:hover{border-color:var(--silver-2)}
+.cal-navbtn svg.ic{width:18px;height:18px;stroke:var(--text)}
+.cal-today{border:1px solid var(--line-2);background:linear-gradient(180deg,var(--raised),var(--panel-2));color:var(--text);font-family:var(--head-wide);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:12px;padding:9px 14px;border-radius:var(--radius-sm)}
+.cal-today:hover{border-color:var(--amber);color:var(--amber)}
+.cal-title{font-family:var(--head);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:21px;margin-left:8px;color:var(--text)}
+.cal-toggle{display:inline-flex;border:1px solid var(--line-2);border-radius:var(--radius-sm);overflow:hidden}
+.cal-toggle button{background:var(--panel-2);color:var(--muted);font-family:var(--head-wide);font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:12px;padding:9px 16px;border:0;border-right:1px solid var(--line-2);cursor:pointer}
+.cal-toggle button:last-child{border-right:0}
+.cal-toggle button.on{background:linear-gradient(180deg,var(--silver),var(--steel));color:#0A0B0E}
+.cal-devs{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.cal-devs .cal-count{margin-left:auto;color:var(--faint);font-size:12px}
+.cal-board{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel-2);overflow:hidden;box-shadow:inset 0 1px 0 var(--edge),0 20px 44px -30px #000}
+.cal-dayrow{display:grid;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:60px;z-index:6}
+.cal-dh{background:transparent;border:0;border-left:1px solid var(--line);padding:9px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+.cal-dh .dow{font-family:var(--head-wide);font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;color:var(--faint)}
+.cal-dh .dnum{font-family:var(--mono);font-weight:600;font-size:18px;color:var(--text);width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+.cal-dh:hover .dnum{color:var(--silver)}
+.cal-dh.today .dnum{color:#0A0B0E;background:var(--amber);border-radius:50%}
+.cal-dh.today .dow{color:var(--amber)}
+.cal-grid{display:grid;position:relative}
+.cal-time{position:relative;border-right:1px solid var(--line)}
+.cal-hr{position:absolute;right:7px;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--faint);white-space:nowrap}
+.cal-col{position:relative;border-left:1px solid var(--line)}
+.cal-col.today{background-color:rgba(201,168,106,.035)}
+.cal-ev{position:absolute;border-radius:7px;padding:5px 8px;overflow:hidden;cursor:pointer;border:1px solid var(--line-2);
+  background:var(--raised);border-left:3px solid var(--muted);box-shadow:0 4px 12px -6px #000;transition:transform .1s,filter .1s;min-height:24px}
+.cal-ev:hover{transform:translateY(-1px);z-index:5;filter:brightness(1.12)}
+.cal-ev .ev-t{font-size:10px;color:var(--text);opacity:.8;font-weight:600;font-variant-numeric:tabular-nums}
+.cal-ev .ev-n{font-family:var(--head-wide);font-weight:700;font-size:12px;line-height:1.12;color:var(--text);margin-top:1px}
+.cal-ev .ev-d{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;margin-top:2px;opacity:.9;font-weight:700}
+.cal-ev.dev-Alex{border-left-color:var(--dev-alex);background:linear-gradient(180deg,rgba(201,168,106,.24),rgba(201,168,106,.09))} .cal-ev.dev-Alex .ev-d{color:var(--dev-alex)}
+.cal-ev.dev-Guille{border-left-color:var(--dev-guille);background:linear-gradient(180deg,rgba(110,168,254,.24),rgba(110,168,254,.09))} .cal-ev.dev-Guille .ev-d{color:var(--dev-guille)}
+.cal-ev.dev-Dani{border-left-color:var(--dev-dani);background:linear-gradient(180deg,rgba(47,191,113,.24),rgba(47,191,113,.09))} .cal-ev.dev-Dani .ev-d{color:var(--dev-dani)}
+@media(max-width:560px){
+  .cal-title{font-size:17px}
+  .cal-board{overflow-x:auto}
+  .cal-dayrow{top:0;position:static}
+  .cal-ev{padding:4px 6px}
+  .cal-ev .ev-n{font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -777,17 +822,7 @@ header.top .wrap{position:relative;justify-content:flex-start;gap:14px}
 
     <!-- CALENDARIO -->
     <section class="view" id="view-calendario">
-      <h2 class="section-label">Calendario de reuniones</h2>
-      <div class="cal-head">
-        <div class="dev-filter" id="devFilter">
-          <button class="devchip on" data-dev="">Todos</button>
-          <button class="devchip dev-Alex" data-dev="Alex"><span class="devdot"></span>Alex</button>
-          <button class="devchip dev-Guille" data-dev="Guille"><span class="devdot"></span>Guille</button>
-          <button class="devchip dev-Dani" data-dev="Dani"><span class="devdot"></span>Dani</button>
-        </div>
-        <div class="cal-count mono" id="calCount"></div>
-      </div>
-      <div id="calAgenda"></div>
+      <div id="calRoot"></div>
     </section>
   </div>
 </div>

@@ -254,10 +254,21 @@ function setupNav() {
   $("navToggle").addEventListener("click", e => { e.stopPropagation(); $("mainnav").classList.toggle("open"); });
   document.addEventListener("click", e => { if (!e.target.closest("#mainnav") && !e.target.closest("#navToggle")) $("mainnav").classList.remove("open"); });
   $("brandHome").addEventListener("click", () => window.scrollTo({ top:0, behavior:"smooth" }));
-  $("devFilter").addEventListener("click", e => {
-    const b = e.target.closest("[data-dev]"); if (!b) return;
-    calDev = b.dataset.dev;
-    $("devFilter").querySelectorAll(".devchip").forEach(c => c.classList.toggle("on", c.dataset.dev === calDev));
+  // estado inicial del calendario (vista guardada o según ancho)
+  try { calView = localStorage.getItem("cc_calview") || (window.innerWidth < 760 ? "day" : "week"); }
+  catch(e){ calView = window.innerWidth < 760 ? "day" : "week"; }
+  // interacciones del calendario (delegadas, porque se reconstruye en cada render)
+  $("calRoot").addEventListener("click", e => {
+    const devB = e.target.closest("[data-dev]");
+    if (devB) { calDev = devB.dataset.dev; renderCalendar(); return; }
+    const a = e.target.closest("[data-cal]"); if (!a) return;
+    const act = a.dataset.cal;
+    if (act === "prev") calRefDate = addDays(calRefDate || new Date(), calView === "week" ? -7 : -1);
+    else if (act === "next") calRefDate = addDays(calRefDate || new Date(), calView === "week" ? 7 : 1);
+    else if (act === "today") calRefDate = new Date();
+    else if (act === "day" || act === "week") { calView = act; try { localStorage.setItem("cc_calview", act); } catch(_){} }
+    else if (act === "goday") { calRefDate = parseISO(a.dataset.d); calView = "day"; try { localStorage.setItem("cc_calview","day"); } catch(_){} }
+    else if (act === "ev") { openLeadFromCalendar(a.dataset.leadid); return; }
     renderCalendar();
   });
   // restaura la última vista usada
@@ -285,46 +296,80 @@ function findConflict(developer, date, time, excludeId) {
   }
   return null;
 }
-const DOW = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
-const MON = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-function fmtDayHead(date) {
-  const [y,m,d] = date.split("-").map(Number);
-  const dt = new Date(y, m-1, d);
-  return { dd: DOW[dt.getDay()] + " " + d, dn: d + " " + MON[m-1] + " " + y, dt };
+/* ---- vista de calendario tipo semana (rejilla con horas) ---- */
+let calView = "week", calRefDate = null;
+const DOW = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const CAL_HPX = 56;
+
+function iso(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function todayISO(){ return iso(new Date()); }
+function parseISO(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
+function stripT(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+
+// asigna carriles a eventos que se solapan (para ponerlos lado a lado)
+function packDay(events){
+  events.sort((a,b)=>a.s-b.s || a.e-b.e);
+  const out=[]; let cluster=[], clusterEnd=-1;
+  const flush=()=>{ if(!cluster.length)return; const lanes=[];
+    cluster.forEach(ev=>{ let placed=false; for(let i=0;i<lanes.length;i++){ if(lanes[i]<=ev.s){ ev.lane=i; lanes[i]=ev.e; placed=true; break; } } if(!placed){ ev.lane=lanes.length; lanes.push(ev.e); } });
+    cluster.forEach(ev=>{ ev.cols=lanes.length; out.push(ev); }); cluster=[]; };
+  events.forEach(ev=>{ if(cluster.length && ev.s>=clusterEnd){ flush(); clusterEnd=-1; } cluster.push(ev); clusterEnd=Math.max(clusterEnd,ev.e); });
+  flush(); return out;
 }
-function renderCalendar() {
-  const el = $("calAgenda"); if (!el) return;
-  let meets = meetingLeads();
-  if (calDev) meets = meets.filter(l => l.developer === calDev);
-  $("calCount").textContent = meets.length + (meets.length === 1 ? " reunión" : " reuniones");
-  if (!meets.length) {
-    el.innerHTML = `<div class="cal-empty"><div class="big">Sin reuniones agendadas</div>${calDev ? "Nadie con "+esc(calDev)+" todavía." : "Agenda una desde la fase «Reunión» de un lead."}</div>`;
-    return;
-  }
-  // agrupar por fecha
-  const byDate = {};
-  meets.forEach(l => { (byDate[l.fechaReunion] = byDate[l.fechaReunion] || []).push(l); });
-  const todayStr = todayISO();
-  const html = Object.keys(byDate).sort().map(date => {
-    const items = byDate[date].sort((a,b) => timeToMin(a.horaReunion) - timeToMin(b.horaReunion));
-    const h = fmtDayHead(date);
-    const rows = items.map(l => {
-      const dev = l.developer ? `<span class="devtag dev-${esc(l.developer)}"><span class="devdot"></span>${esc(l.developer)}</span>` : "";
-      const who = l.gestionadoPor ? `agendó <b>${esc(l.gestionadoPor)}</b>` : "";
-      return `<div class="cal-item${l.estado==='vendido'?' sold':''}">`+
-        `<div class="time">${esc(l.horaReunion||"—")}</div>`+
-        `<div class="info"><div class="nm">${esc(l.nombre)}</div>`+
-          `<div class="sub">${esc(l.sector||"")}${l.ciudad?" · "+esc(l.ciudad):""}${who?" · "+who:""}${l.estado==='vendido'?' · VENTA':''}</div></div>`+
-        dev + `</div>`;
-    }).join("");
-    return `<div class="cal-day${date===todayStr?" today":""}"><div class="cal-day-head"><span class="dd">${esc(h.dd)}</span><span class="dn">${esc(h.dn)}</span></div><div class="cal-items">${rows}</div></div>`;
-  }).join("");
-  el.innerHTML = html;
+
+function renderCalendar(){
+  const root=$("calRoot"); if(!root) return;
+  if(!calRefDate) calRefDate=new Date();
+  const isWeek = calView==="week";
+  const days = isWeek ? Array.from({length:7},(_,i)=>addDays(startOfWeek(calRefDate),i)) : [stripT(calRefDate)];
+  let meets = meetingLeads(); if(calDev) meets=meets.filter(l=>l.developer===calDev);
+  const byDate={}; meets.forEach(l=>{ (byDate[l.fechaReunion]=byDate[l.fechaReunion]||[]).push(l); });
+  let startH=8, endH=20;
+  days.forEach(d=>{ (byDate[iso(d)]||[]).forEach(l=>{ const s=timeToMin(l.horaReunion); startH=Math.min(startH,Math.floor(s/60)); endH=Math.max(endH,Math.ceil((s+MEET_MIN)/60)); }); });
+  startH=Math.max(0,startH); endH=Math.min(24,Math.max(endH,startH+4));
+  const gridH=(endH-startH)*CAL_HPX, todayStr=todayISO();
+  const visCount = days.reduce((n,d)=>n+(byDate[iso(d)]||[]).length,0);
+  const title = isWeek ? (MONTHS[days[0].getMonth()]+" "+days[0].getFullYear())
+                       : (DOW[days[0].getDay()]+" "+days[0].getDate()+" "+MONTHS[days[0].getMonth()].toLowerCase()+" "+days[0].getFullYear());
+
+  let html = `<div class="cal-top"><div class="cal-nav">`+
+      `<button class="cal-navbtn" data-cal="prev" title="Anterior">${ic("chevL")}</button>`+
+      `<button class="cal-today" data-cal="today">Hoy</button>`+
+      `<button class="cal-navbtn" data-cal="next" title="Siguiente">${ic("chevR")}</button>`+
+      `<div class="cal-title">${esc(title)}</div></div>`+
+    `<div class="cal-toggle"><button class="${calView==='day'?'on':''}" data-cal="day">Día</button><button class="${calView==='week'?'on':''}" data-cal="week">Semana</button></div></div>`+
+    `<div class="cal-devs"><button class="devchip${calDev===''?' on':''}" data-dev="">Todos</button>`+
+      DEVELOPERS.map(d=>`<button class="devchip dev-${d}${calDev===d?' on':''}" data-dev="${d}"><span class="devdot"></span>${d}</button>`).join("")+
+      `<span class="cal-count mono">${visCount} ${visCount===1?'reunión':'reuniones'}</span></div>`;
+
+  const colTpl = `54px repeat(${days.length},minmax(0,1fr))`;
+  html += `<div class="cal-board"><div class="cal-dayrow" style="grid-template-columns:${colTpl}"><div class="cal-corner"></div>`+
+    days.map(d=>{ const t=iso(d)===todayStr; return `<button class="cal-dh${t?' today':''}" data-cal="goday" data-d="${iso(d)}"><span class="dow">${DOW[d.getDay()]}</span><span class="dnum">${d.getDate()}</span></button>`; }).join("")+
+    `</div><div class="cal-grid" style="grid-template-columns:${colTpl}">`;
+  let timeCol = `<div class="cal-time" style="height:${gridH}px">`;
+  for(let h=startH; h<=endH; h++) timeCol += `<div class="cal-hr" style="top:${(h-startH)*CAL_HPX}px">${String(h).padStart(2,"0")}:00</div>`;
+  timeCol += `</div>`;
+  html += timeCol;
+  days.forEach(d=>{
+    const t=iso(d)===todayStr;
+    const packed=packDay((byDate[iso(d)]||[]).map(l=>{ const s=timeToMin(l.horaReunion); return {l,s,e:s+MEET_MIN}; }));
+    let col=`<div class="cal-col${t?' today':''}" style="height:${gridH}px;background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% ${CAL_HPX}px">`;
+    packed.forEach(ev=>{
+      const l=ev.l, top=(ev.s-startH*60)/60*CAL_HPX, hgt=MEET_MIN/60*CAL_HPX, w=100/ev.cols, left=ev.lane*w, dev=l.developer||"";
+      col += `<div class="cal-ev${dev?' dev-'+esc(dev):''}${l.estado==='vendido'?' sold':''}" data-cal="ev" data-leadid="${escAttr(l.extId)}" `+
+        `style="top:${top}px;height:${hgt-3}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px)">`+
+        `<div class="ev-t mono">${esc(l.horaReunion||"")}</div><div class="ev-n">${esc(l.nombre)}</div>`+
+        (dev?`<div class="ev-d">${esc(dev)}${l.estado==='vendido'?' · venta':''}</div>`:"")+`</div>`;
+    });
+    html += col + `</div>`;
+  });
+  html += `</div></div>`;
+  root.innerHTML = html;
 }
-function todayISO() {
-  const d = new Date();
-  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-}
+function openLeadFromCalendar(id){ const l=byId[id]; if(!l) return; showView("leads"); const q=$("q"); q.value=l.nombre; Q=l.nombre; applyFilters(); }
 
 function setLive(on) {
   const b = $("liveBadge"), t = $("liveTxt");
@@ -744,7 +789,9 @@ function ic(n){
     plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
     chevron:'<path d="m6 9 6 6 6-6"/>',
     menu:'<line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/>',
-    calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'
+    calendar:'<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    chevL:'<path d="m15 18-6-6 6-6"/>',
+    chevR:'<path d="m9 18 6-6-6-6"/>'
   };
   const fill = n==='star' ? ' style="fill:currentColor;stroke:none"' : '';
   return `<svg class="ic" viewBox="0 0 24 24"${fill}>${P[n]||""}</svg>`;
