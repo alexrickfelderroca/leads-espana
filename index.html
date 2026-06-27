@@ -34,42 +34,63 @@ button{font-family:inherit;cursor:pointer}
 .wrap{max-width:1280px;margin:0 auto;padding:0 18px}
 ::selection{background:var(--amber);color:#1a1206}
 
+/* ============ CINEMATIC BACKGROUND (loader + login only) ============ */
+#bgvideo{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:0;transition:opacity 1.4s ease}
+#bgvideo.ready{opacity:1}
+#bgtint{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(180deg, rgba(11,18,48,.48) 0%, rgba(11,18,48,.70) 52%, rgba(7,11,30,.93) 100%)}
+.cine-off{display:none !important}
+svg.ic{width:1em;height:1em;display:inline-block;vertical-align:-.14em;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+
+/* liquid glass */
+.liquid-glass{background:rgba(255,255,255,.012);backdrop-filter:blur(16px) saturate(1.2);-webkit-backdrop-filter:blur(16px) saturate(1.2);
+  border:none;box-shadow:inset 0 1px 1px rgba(255,255,255,.12), 0 30px 80px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.liquid-glass::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.4px;
+  background:linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,.12) 22%, rgba(255,255,255,0) 42%, rgba(255,255,255,0) 60%, rgba(255,176,32,.2) 82%, rgba(255,176,32,.5) 100%);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+
+/* fade-rise */
+@keyframes fade-rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+.fr{animation:fade-rise .9s cubic-bezier(.2,.7,.2,1) both}
+.fr-1{animation:fade-rise .9s cubic-bezier(.2,.7,.2,1) .15s both}
+.fr-2{animation:fade-rise .9s cubic-bezier(.2,.7,.2,1) .32s both}
+.fr-3{animation:fade-rise .9s cubic-bezier(.2,.7,.2,1) .5s both}
+
 /* ============ LOADER ============ */
-#loader{position:fixed;inset:0;z-index:200;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;
-  background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,.04) 1px, transparent 0);background-size:22px 22px}
+#loader{position:fixed;inset:0;z-index:200;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center}
 #loader .mark{font-family:var(--head);font-weight:800;font-size:13px;letter-spacing:.32em;color:var(--amber);text-transform:uppercase;margin-bottom:30px}
-#loader .ring{width:46px;height:46px;border:3px solid var(--line-2);border-top-color:var(--amber);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:34px}
+#loader .ring{width:46px;height:46px;border:3px solid rgba(255,255,255,.18);border-top-color:var(--amber);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:34px}
 @keyframes spin{to{transform:rotate(360deg)}}
-#loader .motiv{font-family:var(--head);font-weight:700;font-size:clamp(20px,5vw,30px);line-height:1.22;max-width:600px;letter-spacing:-.02em;min-height:2.5em;
-  display:flex;align-items:center;justify-content:center;transition:opacity .4s, transform .4s}
+#loader .motiv{font-family:var(--head);font-weight:700;font-size:clamp(20px,5vw,32px);line-height:1.2;max-width:620px;letter-spacing:-.02em;min-height:2.4em;color:#fff;
+  display:flex;align-items:center;justify-content:center;transition:opacity .4s, transform .4s;text-shadow:0 2px 20px rgba(0,0,0,.4)}
 #loader .motiv.out{opacity:0;transform:translateY(10px)}
 #loader .motiv b{color:var(--amber)}
-#loader .bar{margin-top:34px;width:200px;height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+#loader .bar{margin-top:34px;width:200px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;overflow:hidden}
 #loader .bar i{display:block;height:100%;width:30%;background:var(--amber);border-radius:2px;animation:load 1.4s ease-in-out infinite}
 @keyframes load{0%{margin-left:-30%}100%{margin-left:100%}}
 
-/* ============ LOGIN ============ */
-#login{position:fixed;inset:0;z-index:150;background:var(--navy);display:none;align-items:center;justify-content:center;padding:24px}
+/* ============ LOGIN (cinematic, brand-aligned) ============ */
+#login{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;padding:24px}
 #login.show{display:flex}
-.login-card{width:100%;max-width:380px;border:1px solid var(--line-2);background:var(--panel);border-radius:4px;overflow:hidden}
-.login-card .top{border-bottom:1px solid var(--line);padding:22px 24px 18px;position:relative}
-.login-card .top::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--amber)}
-.login-card .kic{font-family:var(--head);font-weight:800;font-size:22px;letter-spacing:-.02em}
-.login-card .kic .v{color:var(--amber)}
-.login-card .sub{color:var(--muted);font-size:12.5px;margin-top:3px;text-transform:uppercase;letter-spacing:.12em}
-.login-card .body{padding:22px 24px 26px}
-.login-card label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--faint);font-weight:600;margin-bottom:8px}
-.field{display:flex;border:1px solid var(--line-2);border-radius:3px;background:var(--navy-2);transition:border-color .15s}
+.hero{position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;text-align:center;max-width:600px;width:100%}
+.hero .kicker{font-family:var(--head);font-weight:800;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--amber);margin-bottom:20px;display:flex;align-items:center;gap:9px}
+.hero .kicker .live-dot{width:7px;height:7px;border-radius:50%;background:var(--emerald);box-shadow:0 0 0 0 rgba(21,194,107,.6);animation:pulse 1.6s ease-in-out infinite}
+.hero h1{font-family:var(--head);font-weight:700;font-size:clamp(36px,7.5vw,64px);line-height:1.0;letter-spacing:-.035em;margin:0 0 14px;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.45)}
+.hero h1 em{font-style:normal;color:var(--amber)}
+.hero .herolead{color:rgba(234,237,250,.82);font-size:15px;max-width:430px;margin:0 auto 28px;line-height:1.6}
+.login-card{width:100%;max-width:380px;border-radius:16px;padding:24px;margin:0 auto;text-align:left}
+.login-card label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:rgba(234,237,250,.7);font-weight:600;margin-bottom:8px}
+.field{display:flex;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(8,12,32,.45);transition:border-color .15s}
 .field:focus-within{border-color:var(--amber)}
 .field input{flex:1;background:transparent;border:0;outline:0;color:var(--text);font-size:16px;padding:13px 14px;font-family:var(--body)}
-.btn-primary{width:100%;margin-top:18px;padding:14px;border:0;border-radius:3px;background:var(--amber);color:#160F02;font-weight:700;font-size:15px;font-family:var(--head);letter-spacing:.01em;transition:transform .08s, background .15s}
+.btn-primary{width:100%;margin-top:18px;padding:14px;border:0;border-radius:8px;background:var(--amber);color:#160F02;font-weight:700;font-size:15px;font-family:var(--head);letter-spacing:.01em;transition:transform .08s, background .15s;display:flex;align-items:center;justify-content:center;gap:8px}
 .btn-primary:hover{background:#ffbd3d}
 .btn-primary:active{transform:translateY(1px)}
 .btn-primary:disabled{opacity:.5;cursor:default}
-.err{color:var(--red);font-size:13px;font-weight:600;min-height:18px;margin-top:12px;text-align:center}
-.whoami{display:none;flex-wrap:wrap;gap:8px;margin-top:6px}
+.err{color:#ff8a82;font-size:13px;font-weight:600;min-height:18px;margin-top:12px;text-align:center}
+.whoami{display:none;flex-wrap:wrap;gap:8px;margin-top:10px}
 .whoami.show{display:flex}
-.who-chip{border:1px solid var(--line-2);background:var(--navy-2);color:var(--text);padding:9px 13px;border-radius:3px;font-size:13.5px;font-weight:600}
+.who-chip{border:1px solid rgba(255,255,255,.16);background:rgba(8,12,32,.4);color:var(--text);padding:9px 13px;border-radius:8px;font-size:13.5px;font-weight:600}
 .who-chip:hover{border-color:var(--amber)}
 
 /* ============ HEADER ============ */
@@ -149,12 +170,18 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
 .search .si{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--faint)}
 .btn-add{flex:0 0 auto;border:1px solid var(--amber);background:var(--amber-soft);color:var(--amber);font-weight:700;font-size:14px;padding:12px 16px;border-radius:3px;font-family:var(--head);display:flex;align-items:center;gap:7px}
 .btn-add:hover{background:var(--amber);color:#160F02}
-.chips{display:flex;gap:8px;margin-top:11px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips-wrap{display:flex;gap:8px;margin-top:11px;align-items:flex-start}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;flex:1;min-width:0;scroll-behavior:smooth}
 .chips::-webkit-scrollbar{display:none}
+.chips.expanded{flex-wrap:wrap}
 .chip{flex:0 0 auto;border:1px solid var(--line-2);background:var(--panel);color:var(--muted);font-size:13px;font-weight:600;padding:7px 13px;border-radius:30px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
 .chip:hover{border-color:var(--faint);color:var(--text)}
 .chip.on{border-color:var(--amber);background:var(--amber-soft);color:var(--amber)}
 .chip .n{font-family:var(--mono);font-size:11px;opacity:.8}
+.chips-toggle{flex:0 0 auto;align-self:flex-start;border:1px solid var(--line-2);background:var(--panel);color:var(--text);font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:30px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.chips-toggle:hover{border-color:var(--amber);color:var(--amber)}
+.chips-toggle svg.ic{transition:transform .2s}
+.chips-toggle.open svg.ic{transform:rotate(180deg)}
 .filters2{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
 .sel{position:relative}
 .sel select{appearance:none;-webkit-appearance:none;border:1px solid var(--line-2);background:var(--panel);color:var(--text);font-size:13px;font-weight:600;
@@ -177,7 +204,12 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
 .lhead .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .lname{font-family:var(--head);font-weight:700;font-size:16.5px;letter-spacing:-.01em;line-height:1.2}
 .lsector{flex:0 0 auto;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:4px 9px;border-radius:3px;border:1px solid var(--line-2);color:var(--muted);background:var(--navy-2);white-space:nowrap}
-.lmeta{font-size:12.5px;color:var(--muted);margin-top:7px;display:flex;flex-wrap:wrap;gap:3px 10px}
+.prio-pill{font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px 2px 6px;border-radius:4px;border:1px solid;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.prio-pill .pd{width:6px;height:6px;border-radius:50%;background:currentColor}
+.prio-Alta{color:var(--emerald);border-color:rgba(21,194,107,.45);background:var(--emerald-soft)}
+.prio-Media{color:var(--amber);border-color:rgba(255,176,32,.4);background:var(--amber-soft)}
+.prio-Baja{color:var(--faint);border-color:var(--line-2);background:var(--navy-2)}
+.lmeta{font-size:12.5px;color:var(--muted);margin-top:7px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 10px}
 .lmeta .mi{display:inline-flex;align-items:center;gap:5px}
 .lmeta b{color:var(--text);font-weight:600}
 .lmeta .star{color:var(--amber)}
@@ -272,6 +304,11 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
 </head>
 <body>
 
+<!-- CINEMATIC BACKGROUND (loader + login only) -->
+<video id="bgvideo" autoplay loop muted playsinline preload="auto"
+  src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4"></video>
+<div id="bgtint"></div>
+
 <!-- LOADER -->
 <div id="loader">
   <div class="mark">1000 Ventas</div>
@@ -280,14 +317,13 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
   <div class="bar"><i></i></div>
 </div>
 
-<!-- LOGIN -->
+<!-- LOGIN (cinematic) -->
 <div id="login">
-  <div class="login-card">
-    <div class="top">
-      <div class="kic">1000 <span class="v">VENTAS</span></div>
-      <div class="sub">Command Center</div>
-    </div>
-    <div class="body">
+  <div class="hero">
+    <div class="kicker fr"><span class="live-dot"></span> 1000 Ventas — Command Center</div>
+    <h1 class="fr-1">Cada llamada, <em>una venta más cerca.</em></h1>
+    <p class="herolead fr-1">Acceso privado del equipo de ventas. Entra y a cerrar.</p>
+    <div class="login-card liquid-glass fr-2">
       <div id="pwStep">
         <label>Contraseña del equipo</label>
         <div class="field"><input id="pw" type="password" autocomplete="off" placeholder="••••••••" enterkeyhint="go"></div>
@@ -295,7 +331,7 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
         <div class="err" id="loginErr"></div>
       </div>
       <div id="whoStep" style="display:none">
-        <label>¿Quién eres? <span style="color:var(--faint);text-transform:none;letter-spacing:0">(para registrar tus llamadas)</span></label>
+        <label>¿Quién eres? <span style="color:rgba(234,237,250,.55);text-transform:none;letter-spacing:0">(para registrar tus llamadas)</span></label>
         <div class="field"><input id="whoInput" type="text" autocomplete="off" placeholder="Tu nombre" enterkeyhint="go"></div>
         <div class="whoami" id="whoChips"></div>
         <button class="btn-primary" id="whoBtn">Empezar a llamar</button>
@@ -357,11 +393,21 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
     <!-- TOOLBAR -->
     <div class="toolbar">
       <div class="tb-row">
-        <div class="search"><span class="si">🔍</span><input id="q" type="search" placeholder="Buscar empresa, contacto, ciudad, teléfono…" autocomplete="off"></div>
-        <button class="btn-add" id="addBtn">+ Añadir lead</button>
+        <div class="search"><span class="si" id="searchIc"></span><input id="q" type="search" placeholder="Buscar empresa, contacto, ciudad, teléfono…" autocomplete="off"></div>
+        <button class="btn-add" id="addBtn"><span id="addIc"></span> Añadir lead</button>
       </div>
-      <div class="chips" id="sectorChips"></div>
+      <div class="chips-wrap">
+        <div class="chips" id="sectorChips"></div>
+        <button class="chips-toggle" id="chipsToggle">Todos los sectores</button>
+      </div>
       <div class="filters2">
+        <div class="sel"><select id="fSector"></select></div>
+        <div class="sel"><select id="fPrio">
+          <option value="">Toda prioridad</option>
+          <option value="Alta">Prioridad alta</option>
+          <option value="Media">Prioridad media</option>
+          <option value="Baja">Prioridad baja</option>
+        </select></div>
         <div class="sel"><select id="fEstado">
           <option value="">Todas las fases</option>
           <option value="pendiente">Por llamar</option>
@@ -371,7 +417,8 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
         </select></div>
         <div class="sel"><select id="fCity"></select></div>
         <div class="sel"><select id="fSort">
-          <option value="estado">Orden: por fase</option>
+          <option value="prio">Orden: prioridad</option>
+          <option value="estado">Por fase</option>
           <option value="nombre">Nombre (A–Z)</option>
           <option value="reviews">Más reseñas</option>
           <option value="rating">Mejor valoración</option>

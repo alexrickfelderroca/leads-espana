@@ -112,6 +112,7 @@ for (const l of gm) {
     telefono: l.phone || '', telefonoRaw: l.phoneRaw || '', wa: l.wa || '', telefonos: l.phone || '',
     email: l.email || '', mapsUrl: l.mapsUrl || '',
     rating: l.rating != null ? l.rating : null, reviews: l.reviews || 0,
+    score: l.score != null ? l.score : 0, prio: l.prio || 'Baja',
     notasOrigen: '', origen: 'google_maps',
     estado: 'pendiente', fechaReunion: null, horaReunion: null, gestionadoPor: '', notas: ''
   });
@@ -126,6 +127,10 @@ for (const it of dox) {
   const sn = splitNameContact(it.empresa);
   const ph = parsePhones(it.telefono);
   const notas = [sn.nota, ph.nota].filter(Boolean).join(' · ');
+  // Trade leads have no Google reputation data; rank by contactability:
+  // con teléfono → Media (prospecto contactable), sin teléfono → Baja.
+  const score = ph.telefono ? 40 : 15;
+  const prio = ph.telefono ? 'Media' : 'Baja';
   leads.push({
     extId: 'tab-' + n,
     nombre: sn.name, contacto: sn.contacto, sector: sec,
@@ -133,6 +138,7 @@ for (const it of dox) {
     telefono: ph.telefono, telefonoRaw: ph.telefonoRaw, wa: ph.wa, telefonos: ph.telefonos || ph.telefono,
     email: sn.email || '', mapsUrl: '',
     rating: null, reviews: 0,
+    score, prio,
     notasOrigen: notas, origen: 'tablon_sabadell',
     estado: 'pendiente', fechaReunion: null, horaReunion: null, gestionadoPor: '', notas: ''
   });

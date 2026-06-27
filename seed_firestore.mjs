@@ -24,9 +24,16 @@ console.log('Signing in as', cfg.email, '…');
 await signInWithEmailAndPassword(auth, cfg.email, cfg.password);
 console.log('OK. Seeding', leads.length, 'leads…');
 
-const FIELDS = ['nombre','contacto','sector','ciudad','provincia','telefono','telefonoRaw','wa',
-  'telefonos','email','mapsUrl','rating','reviews','notasOrigen','origen','estado',
-  'fechaReunion','horaReunion','gestionadoPor','notas'];
+// Catalog = business info (safe to re-write any time). Tracking = call progress
+// (only written on the initial load, never overwritten afterwards).
+const CATALOG_FIELDS = ['nombre','contacto','sector','ciudad','provincia','telefono','telefonoRaw','wa',
+  'telefonos','email','mapsUrl','rating','reviews','score','prio','notasOrigen','origen'];
+const TRACKING_FIELDS = ['estado','fechaReunion','horaReunion','gestionadoPor','notas'];
+
+// SEED_MODE=catalog → only update catalog fields, preserving everyone's progress.
+const CATALOG_ONLY = process.env.SEED_MODE === 'catalog';
+const FIELDS = CATALOG_ONLY ? CATALOG_FIELDS : [...CATALOG_FIELDS, ...TRACKING_FIELDS];
+console.log(CATALOG_ONLY ? 'Mode: CATALOG (progreso intacto)' : 'Mode: FULL (carga inicial, estado→pendiente)');
 
 const CHUNK = 450;
 let written = 0;
@@ -36,9 +43,9 @@ for (let i = 0; i < leads.length; i += CHUNK) {
     const ref = doc(db, 'leads', l.extId);
     const out = {};
     for (const f of FIELDS) out[f] = l[f] !== undefined ? l[f] : null;
-    out.creadoEn = serverTimestamp();
     out.actualizadoEn = serverTimestamp();
-    batch.set(ref, out, { merge: true }); // NOTE: run ONCE for the initial load — re-running resets estado to 'pendiente'
+    if (!CATALOG_ONLY) out.creadoEn = serverTimestamp();
+    batch.set(ref, out, { merge: true });
   }
   await batch.commit();
   written += Math.min(CHUNK, leads.length - i);

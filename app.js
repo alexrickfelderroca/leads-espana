@@ -192,6 +192,10 @@ function commitWho(name) {
 }
 function enterApp() {
   $("login").classList.remove("show");
+  // drop the cinematic background once inside the CRM (keep it clean + light)
+  const v = $("bgvideo"), t = $("bgtint");
+  if (v) { try { v.pause(); } catch(e){} v.classList.add("cine-off"); v.removeAttribute("src"); }
+  if (t) t.classList.add("cine-off");
   $("app").style.display = "block";
   updateCallerChip();
   bootData();
@@ -206,7 +210,7 @@ function updateCallerChip() {
    STATE + RENDER
    =================================================================== */
 let LEADS = [], byId = {}, firstRender = true, pendingLocal = new Set(), notesOpen = new Set();
-let Q = "", F = { sector:"", estado:"", city:"", sort:"estado" };
+let Q = "", F = { sector:"", prio:"", estado:"", city:"", sort:"prio" };
 let filtered = [], rendered = 0; const CHUNK = 36;
 
 function bootData() {
@@ -295,25 +299,32 @@ function fillRank(id, rows, _u, emptyMsg) {
 }
 
 /* ---------- facets ---------- */
+let _facetSig = "";
 function buildFacets() {
   const secCount = {}, cityCount = {};
   LEADS.forEach(l => { const s=l.sector||"Otros"; secCount[s]=(secCount[s]||0)+1; if(l.ciudad){cityCount[l.ciudad]=(cityCount[l.ciudad]||0)+1;} });
-  // sector chips: preload first, then others by count
   const others = Object.keys(secCount).filter(s => !PRELOAD_SECTORS.includes(s)).sort((a,b)=>secCount[b]-secCount[a]);
-  const order = [...PRELOAD_SECTORS, ...others];
-  const chips = $("sectorChips");
-  chips.innerHTML = `<button class="chip${F.sector===""?" on":""}" data-sector="">Todos <span class="n">${LEADS.length}</span></button>` +
-    order.map(s => `<button class="chip${F.sector===s?" on":""}" data-sector="${escAttr(s)}">${esc(s)} <span class="n">${secCount[s]||0}</span></button>`).join("");
-  // city select
-  const csel = $("fCity");
-  if (csel.dataset.built !== "1" || csel.options.length < 2) {
+  const order = [...PRELOAD_SECTORS.filter(s=>secCount[s]), ...others];
+  // Rebuild DOM only when the set of leads/sectors/cities actually changes
+  // (not on every status tic), so chip scroll position & open menus aren't reset.
+  const sig = LEADS.length + "|" + order.length + "|" + Object.keys(cityCount).length;
+  if (sig !== _facetSig) {
+    _facetSig = sig;
+    $("sectorChips").innerHTML =
+      `<button class="chip" data-sector="">Todos <span class="n">${LEADS.length}</span></button>` +
+      order.map(s => `<button class="chip" data-sector="${escAttr(s)}">${esc(s)} <span class="n">${secCount[s]||0}</span></button>`).join("");
+    $("fSector").innerHTML = `<option value="">Todos los sectores (${order.length})</option>` +
+      order.map(s=>`<option value="${escAttr(s)}">${esc(s)} (${secCount[s]})</option>`).join("");
     const cities = Object.keys(cityCount).sort((a,b)=>cityCount[b]-cityCount[a]);
-    csel.innerHTML = `<option value="">Todas las ciudades</option>` + cities.map(c=>`<option value="${escAttr(c)}">${esc(c)} (${cityCount[c]})</option>`).join("");
-    csel.dataset.built = "1";
+    $("fCity").innerHTML = `<option value="">Todas las ciudades</option>` +
+      cities.map(c=>`<option value="${escAttr(c)}">${esc(c)} (${cityCount[c]})</option>`).join("");
+    $("aSector").innerHTML = order.map(s=>`<option value="${escAttr(s)}">${esc(s)}</option>`).join("");
   }
-  // add-lead sector options
-  const asel = $("aSector");
-  if (asel && asel.options.length === 0) asel.innerHTML = order.map(s=>`<option value="${escAttr(s)}">${esc(s)}</option>`).join("");
+  syncSectorActive();
+}
+function syncSectorActive() {
+  $("sectorChips").querySelectorAll(".chip").forEach(c => c.classList.toggle("on", c.dataset.sector === F.sector));
+  $("fSector").value = F.sector;
 }
 
 /* ---------- filters + list ---------- */
@@ -321,6 +332,7 @@ function applyFilters() {
   const q = Q.trim().toLowerCase();
   filtered = LEADS.filter(l => {
     if (F.sector && l.sector !== F.sector) return false;
+    if (F.prio && l.prio !== F.prio) return false;
     if (F.city && l.ciudad !== F.city) return false;
     if (F.estado && l.estado !== F.estado) return false;
     if (q) {
@@ -334,8 +346,9 @@ function applyFilters() {
     if (s==="nombre") return a.nombre.localeCompare(b.nombre);
     if (s==="reviews") return (b.reviews||0)-(a.reviews||0);
     if (s==="rating") return (b.rating||0)-(a.rating||0) || (b.reviews||0)-(a.reviews||0);
-    // por fase: vendidos→reunión→llamado→pendiente, luego por reseñas
-    return (LEVEL[b.estado]||0)-(LEVEL[a.estado]||0) || (b.reviews||0)-(a.reviews||0);
+    if (s==="estado") return (LEVEL[b.estado]||0)-(LEVEL[a.estado]||0) || (b.score||0)-(a.score||0);
+    // por prioridad (alta→media→baja) usando el score, luego reseñas
+    return (b.score||0)-(a.score||0) || (b.reviews||0)-(a.reviews||0);
   });
   $("rCount").textContent = filtered.length;
   const grid = $("grid"); grid.innerHTML = ""; rendered = 0;
@@ -365,6 +378,7 @@ function patchCard(extId, remote) {
 }
 function passesFilter(l) {
   if (F.sector && l.sector !== F.sector) return false;
+  if (F.prio && l.prio !== F.prio) return false;
   if (F.city && l.ciudad !== F.city) return false;
   if (F.estado && l.estado !== F.estado) return false;
   return true;
@@ -377,10 +391,11 @@ function cardEl(l) {
   el.className = "lead e-" + l.estado;
   el.dataset.id = l.extId;
 
-  const meta = [];
-  if (l.ciudad) meta.push(`<span class="mi">📍 <b>${esc(l.ciudad)}</b></span>`);
-  if (l.contacto) meta.push(`<span class="mi">👤 ${esc(l.contacto)}</span>`);
-  if (l.rating != null) meta.push(`<span class="mi"><span class="star">★</span> ${l.rating} <span style="color:var(--faint)">(${l.reviews||0})</span></span>`);
+  const prio = l.prio || "Baja";
+  const meta = [`<span class="prio-pill prio-${prio}"><span class="pd"></span>${prio}</span>`];
+  if (l.ciudad) meta.push(`<span class="mi">${ic("pin")} <b>${esc(l.ciudad)}</b></span>`);
+  if (l.contacto) meta.push(`<span class="mi">${ic("user")} ${esc(l.contacto)}</span>`);
+  if (l.rating != null) meta.push(`<span class="mi star">${ic("star")} ${l.rating} <span style="color:var(--faint)">(${l.reviews||0})</span></span>`);
   if (l.telefono) meta.push(`<span class="mi mono">${esc(l.telefono)}</span>`);
 
   const phoneOk = !!l.telefonoRaw, waOk = !!l.wa;
@@ -392,7 +407,7 @@ function cardEl(l) {
     if (lv >= si) st += " done";
     else if (lv === si-1) st += " next";
     else st += " locked";
-    const mark = lv >= si ? "✓" : si;
+    const mark = lv >= si ? ic("check") : si;
     return `<div class="${st}" data-step="${si}"><div class="sk">${mark}</div><div class="sl">${label}</div></div>`;
   }).join("");
 
@@ -416,7 +431,7 @@ function cardEl(l) {
       `<div class="funnel">${steps}</div>`+
       `<div class="dtpick"><input type="date" value="${l.fechaReunion||""}"><input type="time" value="${l.horaReunion||"10:00"}"><button class="ok" data-okmeet>Guardar</button></div>`+
       meetHtml+
-      `<div class="lfoot">${by}<button class="notebtn${l.notas?" has":""}" data-note>📝 ${l.notas?"Nota":"Nota"}</button></div>`+
+      `<div class="lfoot">${by}<button class="notebtn${l.notas?" has":""}" data-note>${ic("note")} Nota</button></div>`+
       `<div class="notewrap"><textarea placeholder="Notas de la llamada: con quién hablaste, objeciones, cuándo volver…">${esc(l.notas||"")}</textarea></div>`+
     `</div>`;
   return el;
@@ -463,7 +478,7 @@ async function handleStep(id, lead, si, lv, card) {
   if (si === lv + 1) { // advance
     if (si === 1) patch.estado = "llamado";
     else if (si === 2) { card.querySelector(".dtpick").classList.add("show"); return; } // open picker; commit via okMeet
-    else if (si === 3) { patch.estado = "vendido"; toast('<span class="tk">🎉</span> ¡Venta cerrada! +1 para el equipo'); }
+    else if (si === 3) { patch.estado = "vendido"; toast('<span class="tk">'+ic("trophy")+'</span> ¡Venta cerrada! +1 para el equipo'); }
     if (!lead.gestionadoPor) patch.gestionadoPor = caller();
   } else if (si === lv) { // step back one level
     const target = ["pendiente","llamado","reunion","vendido"][si-1];
@@ -492,8 +507,20 @@ function bindUI() {
   // sector chips
   $("sectorChips").addEventListener("click", e => {
     const c = e.target.closest("[data-sector]"); if (!c) return;
-    F.sector = c.dataset.sector; buildFacets(); applyFilters();
+    F.sector = c.dataset.sector; syncSectorActive(); applyFilters();
   });
+  // let the chip row scroll horizontally with a normal (vertical) wheel
+  $("sectorChips").addEventListener("wheel", e => {
+    if (!$("sectorChips").classList.contains("expanded") && e.deltaY) { $("sectorChips").scrollLeft += e.deltaY; e.preventDefault(); }
+  }, { passive:false });
+  // expand/collapse the full sector list
+  $("chipsToggle").addEventListener("click", () => {
+    const open = $("sectorChips").classList.toggle("expanded");
+    $("chipsToggle").classList.toggle("open", open);
+    $("chipsToggle").innerHTML = (open ? "Ver menos" : "Ver todos") + ic("chevron");
+  });
+  $("fSector").addEventListener("change", e => { F.sector = e.target.value; syncSectorActive(); applyFilters(); });
+  $("fPrio").addEventListener("change", e => { F.prio = e.target.value; applyFilters(); });
   $("fEstado").addEventListener("change", e => { F.estado = e.target.value; applyFilters(); });
   $("fCity").addEventListener("change", e => { F.city = e.target.value; applyFilters(); });
   $("fSort").addEventListener("change", e => { F.sort = e.target.value; applyFilters(); });
@@ -524,7 +551,8 @@ async function saveAdd() {
       nombre: nombre.trim(), contacto: (contacto||"").trim(), sector: sector || "Otros",
       ciudad: (city||"").trim(), provincia: "", telefono: valid?tel.trim():"",
       telefonoRaw: valid?("+34"+digits):"", wa: valid?("34"+digits):"", telefonos: tel?tel.trim():"",
-      email:"", mapsUrl:"", rating:null, reviews:0, notasOrigen:"", origen:"manual",
+      email:"", mapsUrl:"", rating:null, reviews:0, score: valid?40:15, prio: valid?"Media":"Baja",
+      notasOrigen:"", origen:"manual",
       estado:"pendiente", fechaReunion:null, horaReunion:null, gestionadoPor:"", notas:""
     };
   };
@@ -559,19 +587,46 @@ function tween(el, from, to, suffix){
   const steps = 12; let i=0;
   el._tw = setInterval(() => { i++; const v = Math.round(from + (to-from)*(i/steps)); el.textContent = v + suffix; if(i>=steps){ el.textContent = to+suffix; clearInterval(el._tw);} }, 20);
 }
+// Lucide-style icons (stroke-based). Styling comes from CSS `svg.ic`.
 function ic(n){
-  const p={
-    phone:'<path d="M3 5c0 8 6 14 14 14l2.5-2.5-3.5-2-2 1.2A12 12 0 0 1 8.3 9l1.2-2-2-3.5L5 6Z" fill="currentColor"/>',
-    wa:'<path d="M12 2a9.5 9.5 0 0 0-8.1 14.5L3 22l5.7-1.5A9.5 9.5 0 1 0 12 2Zm5 13.4c-.2.6-1.2 1.1-1.7 1.2-.4 0-1 .2-3-.9-2.5-1.3-4-3.9-4.2-4.1-.1-.2-1-1.3-1-2.4s.6-1.7.8-1.9c.2-.2.4-.3.6-.3h.4c.2 0 .4 0 .6.5l.8 1.9c0 .2.1.4 0 .5l-.4.6c-.2.2-.3.4-.1.7.2.3.8 1.3 1.7 2 .9.6 1.3.8 1.6 1 .2 0 .4 0 .5-.1l.7-.8c.2-.3.4-.2.6-.1l1.8.9c.2.1.4.2.4.3.1.2.1.7-.1 1.3Z" fill="currentColor"/>',
-    pin:'<path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z" fill="currentColor"/>'
+  const P={
+    phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+    wa:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+    pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+    user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+    star:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+    search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    note:'<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/>',
+    check:'<path d="M20 6 9 17l-5-5"/>',
+    trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+    repeat:'<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+    chevron:'<path d="m6 9 6 6 6-6"/>'
   };
-  return `<svg viewBox="0 0 24 24">${p[n]||""}</svg>`;
+  const fill = n==='star' ? ' style="fill:currentColor;stroke:none"' : '';
+  return `<svg class="ic" viewBox="0 0 24 24"${fill}>${P[n]||""}</svg>`;
 }
 
 /* ===================================================================
    BOOT
    =================================================================== */
+function setupStaticIcons() {
+  $("searchIc").innerHTML = ic("search");
+  $("addIc").innerHTML = ic("plus");
+  $("callerEdit").innerHTML = ic("repeat");
+  $("chipsToggle").innerHTML = "Ver todos" + ic("chevron");
+}
+function setupVideo() {
+  const v = $("bgvideo"); if (!v) return;
+  const ready = () => v.classList.add("ready");
+  v.addEventListener("canplay", ready, { once:true });
+  if (v.readyState >= 3) ready();
+  // some browsers need an explicit play() kick for muted autoplay
+  const p = v.play && v.play(); if (p && p.catch) p.catch(()=>{});
+}
 async function main() {
+  setupStaticIcons();
+  setupVideo();
   startLoader();
   DB = MOCK_MODE ? makeMockDB() : makeFirebaseDB();
   const t0 = 1600; // min loader time for the motivational moment
