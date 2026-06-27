@@ -25,6 +25,11 @@
   --blue:#6E7681; --blue-soft:rgba(110,118,129,.12);
   --teal:#A9AEB6; --teal-soft:rgba(169,174,182,.12);
   --wa-dot:#5FB58C;
+  /* señales funcionales (ticks verdes, semáforo de prioridad, glows de acción) */
+  --green:#2FBF71; --green-soft:rgba(47,191,113,.12); --green-glow:rgba(47,191,113,.34);
+  --orange:#E0913F; --orange-soft:rgba(224,145,63,.13);
+  --yellow:#E6C84F; --yellow-soft:rgba(230,200,79,.13);
+  --red-glow:rgba(199,84,75,.38); --gold-hover-glow:rgba(201,168,106,.4);
   --mono:'Geist Mono','JetBrains Mono',ui-monospace,'SFMono-Regular',monospace;
   --head:'Archivo Narrow','Archivo','Arial Narrow',sans-serif;
   --head-wide:'Archivo',-apple-system,sans-serif;
@@ -421,8 +426,8 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 .lead:hover{transform:translateY(-2px);border-color:var(--line-2);box-shadow:inset 0 1px 0 var(--edge-strong),0 0 0 1px rgba(0,0,0,.45),0 26px 54px -28px #000}
 .lead.e-llamado,.lead.e-reunion,.lead.e-vendido{border-left:1px solid var(--line)}
 .lead::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2px;border-radius:2px;background:var(--line-2)}
-.lead.e-llamado::before{background:var(--blue)}
-.lead.e-reunion::before{background:var(--teal)}
+.lead.e-llamado::before{background:var(--green)}
+.lead.e-reunion::before{background:var(--green)}
 .lead.e-vendido::before{background:var(--amber)}
 .lead.e-vendido{border-color:rgba(201,168,106,.28)}
 .lead.flash{animation:flashNoir 1s ease}
@@ -433,9 +438,9 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 .lmeta .star svg.ic{stroke:var(--amber)}
 /* priority pills — outline fino */
 .prio-pill{font-family:var(--mono);letter-spacing:.08em;border-radius:var(--radius-xs);border:1px solid var(--line-2);background:transparent;color:var(--muted)}
-.prio-Alta{color:var(--red);border-color:rgba(199,84,75,.45);background:var(--red-soft)}
-.prio-Media{color:var(--text);border-color:var(--line-2);background:transparent}
-.prio-Baja{color:var(--faint);border-color:var(--line-2);background:transparent}
+.prio-Alta{color:var(--red);border-color:rgba(199,84,75,.5);background:var(--red-soft)}
+.prio-Media{color:var(--orange);border-color:rgba(224,145,63,.5);background:var(--orange-soft)}
+.prio-Baja{color:var(--yellow);border-color:rgba(230,200,79,.5);background:var(--yellow-soft)}
 
 /* ---- ACTION BUTTONS (labeled, gunmetal embossed) ---- */
 .la{border-radius:var(--radius-sm);border:1px solid var(--line-2);background:linear-gradient(180deg,var(--raised),var(--navy-2));color:var(--text);
@@ -446,9 +451,11 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 .la:hover svg.ic{stroke:var(--silver)}
 .la:active{transform:translateY(0);box-shadow:var(--shadow-press)}
 .la.call{border-color:var(--line-2);color:var(--text);background:linear-gradient(180deg,var(--raised),var(--navy-2))}
-.la.call:hover{border-color:var(--amber);color:var(--amber)} .la.call:hover svg.ic{stroke:var(--amber)}
+.la.call:hover{border-color:var(--amber);color:var(--amber);box-shadow:0 0 20px -4px var(--gold-hover-glow),inset 0 1px 0 var(--edge)} .la.call:hover svg.ic{stroke:var(--amber)}
 .la.wa{border-color:var(--line-2);color:var(--text);background:linear-gradient(180deg,var(--raised),var(--navy-2))}
-.la.wa svg.ic{stroke:var(--muted)} .la.wa:hover{border-color:var(--silver-2)} .la.wa:hover svg.ic{stroke:var(--silver)}
+.la.wa svg.ic{stroke:var(--muted)}
+.la.wa:hover{border-color:var(--green);color:var(--green);box-shadow:0 0 20px -4px var(--green-glow),inset 0 1px 0 var(--edge)} .la.wa:hover svg.ic{stroke:var(--green)}
+.la.maps:hover{border-color:var(--red);color:var(--red);box-shadow:0 0 20px -4px var(--red-glow),inset 0 1px 0 var(--edge)} .la.maps:hover svg.ic{stroke:var(--red)}
 .la.dis{opacity:.3}
 
 /* ---- FUNNEL (monocromo → oro en Venta) ---- */
@@ -456,12 +463,12 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 .step{background:transparent;border-right:1px solid var(--line)}
 .step .sk{font-family:var(--mono);border:1.5px solid var(--line-2);color:var(--faint)}
 .step .sl{font-family:var(--head-wide);text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-.step.done.s1{background:linear-gradient(180deg,var(--raised),var(--navy-2))}
-.step.done.s1 .sk{background:transparent;border-color:var(--blue);color:var(--blue)} .step.done.s1 .sl{color:var(--text)}
-.step.done.s1 .sk svg.ic{stroke:var(--blue)}
-.step.done.s2{background:linear-gradient(180deg,var(--raised-2),var(--raised))}
-.step.done.s2 .sk{background:transparent;border-color:var(--teal);color:var(--teal)} .step.done.s2 .sl{color:#fff}
-.step.done.s2 .sk svg.ic{stroke:var(--teal)}
+.step.done.s1{background:var(--green-soft)}
+.step.done.s1 .sk{background:transparent;border-color:var(--green);color:var(--green)} .step.done.s1 .sl{color:var(--green)}
+.step.done.s1 .sk svg.ic{stroke:var(--green)}
+.step.done.s2{background:var(--green-soft)}
+.step.done.s2 .sk{background:transparent;border-color:var(--green);color:var(--green)} .step.done.s2 .sl{color:var(--green)}
+.step.done.s2 .sk svg.ic{stroke:var(--green)}
 .step.done.s3{background:var(--amber-soft);box-shadow:0 0 16px -6px var(--gold-glow)}
 .step.done.s3 .sk{background:transparent;border-color:var(--amber);color:var(--amber)} .step.done.s3 .sl{color:var(--amber)}
 .step.done.s3 .sk svg.ic{stroke:var(--amber)}
@@ -518,6 +525,21 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 @media(prefers-reduced-motion:reduce){
   .btn-primary::after{display:none}
   .lead:hover{transform:none}
+}
+
+/* ---- MOBILE LOGIN: vídeo arriba (animación visible) + contenido abajo ---- */
+@media(max-width:560px){
+  #bgvideo{object-position:center 35%}
+  /* tinte claro arriba (se ve la animación), oscuro abajo (legibilidad del texto/tarjeta) */
+  #bgtint{background:linear-gradient(180deg,
+    rgba(8,9,11,.08) 0%, rgba(8,9,11,.10) 26%, rgba(8,9,11,.55) 56%, rgba(8,9,11,.88) 78%, rgba(8,9,11,.97) 100%)}
+  #login{flex-direction:column; justify-content:flex-start; align-items:center;
+    overflow-y:auto; padding:20px 16px calc(24px + env(safe-area-inset-bottom))}
+  .hero{margin-top:auto; max-width:none; width:100%}
+  .hero .kicker{font-size:10px; letter-spacing:.18em; margin-bottom:10px}
+  .hero h1{font-size:clamp(30px,8.5vw,42px); line-height:.94; margin-bottom:8px}
+  .hero .herolead{font-size:12px; margin-bottom:18px}
+  .login-card{max-width:none; width:100%}
 }
 </style>
 </head>

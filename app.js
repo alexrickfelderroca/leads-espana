@@ -457,7 +457,7 @@ function cardEl(l) {
       `<div class="lacts">`+
         (phoneOk ? `<a class="la call" href="tel:${escAttr(l.telefonoRaw)}">${ic("phone")}Llamar</a>` : `<span class="la dis">${ic("phone")}Sin tel.</span>`)+
         (waOk ? `<a class="la wa" target="_blank" rel="noopener" href="https://wa.me/${escAttr(l.wa)}?text=${waMsg}">${ic("wa")}WhatsApp</a>` : `<span class="la dis">${ic("wa")}—</span>`)+
-        (l.mapsUrl ? `<a class="la" target="_blank" rel="noopener" href="${escAttr(l.mapsUrl)}">${ic("pin")}Maps</a>` : `<span class="la dis">${ic("pin")}—</span>`)+
+        (l.mapsUrl ? `<a class="la maps" target="_blank" rel="noopener" href="${escAttr(l.mapsUrl)}">${ic("pin")}Maps</a>` : `<span class="la dis">${ic("pin")}—</span>`)+
       `</div>`+
       `<div class="funnel">${steps}</div>`+
       `<div class="dtpick"><input type="date" value="${l.fechaReunion||""}"><input type="time" value="${l.horaReunion||"10:00"}"><button class="ok" data-okmeet>Guardar</button></div>`+
