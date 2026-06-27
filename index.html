@@ -407,8 +407,13 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
 .sel select{font-family:var(--head-wide);text-transform:uppercase;letter-spacing:.04em;border-radius:var(--radius-sm);background:var(--navy-2);border:1px solid var(--line-2);box-shadow:inset 0 1px 0 var(--edge)}
 .sel select:focus{border-color:var(--silver-2)}
 .sel::after{color:var(--faint)}
+/* selects must shrink + wrap so the toolbar never overflows / clips "Ver todos" */
+.filters2{flex-wrap:wrap}
+.filters2 .sel{flex:1 1 140px;min-width:0;max-width:260px}
+.filters2 .sel select{width:100%;min-width:0}
 .resline .c{font-family:var(--mono);color:var(--muted)}
-.toolbar{background:var(--navy);border-bottom:1px solid var(--line)}
+.toolbar{background:var(--navy);border-bottom:1px solid var(--line);max-width:100%;overflow:hidden}
+.chips-wrap{max-width:100%}
 
 /* ---- LEAD CARD ---- */
 .lead{background:linear-gradient(180deg,#15171C 0%,#0F1115 100%);border:1px solid var(--line);border-radius:var(--radius);border-left:none;

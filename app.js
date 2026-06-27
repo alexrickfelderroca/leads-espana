@@ -515,6 +515,8 @@ async function handleStep(id, lead, si, lv, card) {
     const target = ["pendiente","llamado","reunion","vendido"][si-1];
     patch.estado = target;
     if (LEVEL[target] < 2) { patch.fechaReunion = null; patch.horaReunion = null; }
+    if (target === "pendiente") patch.gestionadoPor = ""; // back to untouched → clear assignee
+
   } else if (si === 2 && lv >= 2) { // edit meeting datetime without changing level
     card.querySelector(".dtpick").classList.add("show"); return;
   } else return;
@@ -662,7 +664,10 @@ async function main() {
   DB = MOCK_MODE ? makeMockDB() : makeFirebaseDB();
   const t0 = 1600; // min loader time for the motivational moment
   const started = performance.now();
-  try { await DB.ready(); } catch(e){ console.error("DB init failed", e); }
+  // Never let a slow/blocked Firebase hang the loader — cap the wait, then show login anyway.
+  try {
+    await Promise.race([DB.ready(), new Promise((_, rej) => setTimeout(() => rej(new Error("ready-timeout")), 9000))]);
+  } catch(e){ console.error("DB init failed/slow", e); }
   // login bindings
   $("pwBtn").addEventListener("click", doLogin);
   $("pw").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
@@ -673,9 +678,9 @@ async function main() {
   const wait = Math.max(0, t0 - (performance.now() - started));
   setTimeout(() => {
     stopLoader();
-    if (MOCK_MODE) { showLogin(); }
-    else if (DB.isAuthed && DB.isAuthed()) { if (caller()) enterApp(); else { showLogin(); goWhoStep(); } }
-    else showLogin();
+    // Always show the login (cinematic video + password) on each visit, even if the
+    // Firebase session is still valid — the team sees the brand gate every time.
+    showLogin();
     if (MOCK_MODE) showCfgBanner();
   }, wait);
 }
