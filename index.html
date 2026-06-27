@@ -48,7 +48,7 @@ body{
 a{color:inherit;text-decoration:none}
 button{font-family:inherit;cursor:pointer}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
-.wrap{max-width:1280px;margin:0 auto;padding:0 18px}
+.wrap{width:100%;max-width:2200px;margin:0 auto;padding:0 clamp(14px,2.4vw,48px)}
 ::selection{background:var(--amber);color:#0A0805}
 
 /* ============ CINEMATIC BACKGROUND (loader + login only) ============ */
@@ -225,7 +225,7 @@ header.top .wrap{display:flex;align-items:center;justify-content:space-between;h
 .resline .c b{color:var(--text)}
 
 /* ============ LEAD CARDS ============ */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;padding:6px 0 40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;padding:6px 0 40px}
 .lead{border:1px solid var(--line);background:var(--panel);border-radius:4px;display:flex;flex-direction:column;overflow:hidden;transition:border-color .2s}
 .lead.flash{animation:flash 1.1s ease}
 @keyframes flash{0%{border-color:var(--amber);background:var(--amber-soft)}100%{border-color:var(--line);background:var(--panel)}}
@@ -540,6 +540,20 @@ header.top{background:var(--panel-2);border-bottom:1px solid var(--line)}
   .hero h1{font-size:clamp(30px,8.5vw,42px); line-height:.94; margin-bottom:8px}
   .hero .herolead{font-size:12px; margin-bottom:18px}
   .login-card{max-width:none; width:100%}
+}
+
+/* ---- WIDE DESKTOP: aprovechar el ancho (contadores en una fila, progreso mayor) ---- */
+@media(min-width:1180px){
+  .dash-grid{grid-template-columns:1.45fr 2.4fr}
+  .counters{grid-template-columns:repeat(4,1fr)}
+  .counters .c{display:flex;flex-direction:column;justify-content:center;border-bottom:0;border-right:1px solid var(--line)}
+  .counters .c:last-child{border-right:0}
+  .prog .num{font:600 68px/1 var(--mono);color:var(--amber);letter-spacing:-.045em}
+  .prog .num .pct{font-size:30px}
+  .c .cv{font-size:38px}
+}
+@media(min-width:1600px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
 }
 </style>
 </head>
