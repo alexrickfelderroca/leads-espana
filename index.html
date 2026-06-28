@@ -676,6 +676,30 @@ header.top .wrap{position:relative;justify-content:flex-start;gap:14px}
   .cal-ev{padding:4px 6px}
   .cal-ev .ev-n{font-size:11px}
 }
+/* ---- vista MES ---- */
+.cal-mhead{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--line);background:var(--panel)}
+.cal-mhead div{padding:9px 6px;text-align:center;font-family:var(--head-wide);font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;color:var(--faint);border-left:1px solid var(--line)}
+.cal-mhead div:first-child{border-left:0}
+.cal-mgrid{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-cell{display:flex;flex-direction:column;gap:3px;align-items:stretch;min-height:112px;padding:7px;border-left:1px solid var(--line);border-top:1px solid var(--line);background:transparent;cursor:pointer;text-align:left;overflow:hidden}
+.cal-cell:nth-child(7n+1){border-left:0}
+.cal-cell:hover{background:var(--raised)}
+.cal-cell.out{opacity:.38}
+.cal-cell .cnum{font-family:var(--mono);font-weight:600;font-size:13px;color:var(--text);align-self:flex-start;min-width:24px;height:24px;padding:0 4px;display:flex;align-items:center;justify-content:center;border-radius:13px}
+.cal-cell.today .cnum{background:var(--amber);color:#0A0B0E}
+.cal-mev{display:block;font-size:10.5px;color:var(--text);background:var(--raised);border-left:2px solid var(--muted);border-radius:3px;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cal-mev b{font-family:var(--mono);font-weight:600;opacity:.85;margin-right:2px}
+.cal-mev.dev-Alex{border-left-color:var(--dev-alex);background:rgba(201,168,106,.14)}
+.cal-mev.dev-Guille{border-left-color:var(--dev-guille);background:rgba(110,168,254,.14)}
+.cal-mev.dev-Dani{border-left-color:var(--dev-dani);background:rgba(47,191,113,.14)}
+.cal-more{font-size:10px;color:var(--faint);padding:1px 5px}
+@media(max-width:560px){
+  .cal-cell{min-height:62px;padding:4px;gap:2px}
+  .cal-cell .cnum{font-size:11px;height:20px;min-width:20px}
+  .cal-mev{font-size:9px;padding:1px 4px}
+  .cal-mev b{display:none}
+  .cal-mhead div{font-size:9px;padding:7px 2px}
+}
 </style>
 </head>
 <body>

@@ -263,10 +263,10 @@ function setupNav() {
     if (devB) { calDev = devB.dataset.dev; renderCalendar(); return; }
     const a = e.target.closest("[data-cal]"); if (!a) return;
     const act = a.dataset.cal;
-    if (act === "prev") calRefDate = addDays(calRefDate || new Date(), calView === "week" ? -7 : -1);
-    else if (act === "next") calRefDate = addDays(calRefDate || new Date(), calView === "week" ? 7 : 1);
+    if (act === "prev") calRefDate = calStep(-1);
+    else if (act === "next") calRefDate = calStep(1);
     else if (act === "today") calRefDate = new Date();
-    else if (act === "day" || act === "week") { calView = act; try { localStorage.setItem("cc_calview", act); } catch(_){} }
+    else if (act === "day" || act === "week" || act === "month") { calView = act; try { localStorage.setItem("cc_calview", act); } catch(_){} }
     else if (act === "goday") { calRefDate = parseISO(a.dataset.d); calView = "day"; try { localStorage.setItem("cc_calview","day"); } catch(_){} }
     else if (act === "ev") { openLeadFromCalendar(a.dataset.leadid); return; }
     renderCalendar();
@@ -308,6 +308,7 @@ function parseISO(s){ const [y,m,d]=s.split("-").map(Number); return new Date(y,
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
 function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
 function stripT(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+function calStep(dir){ const b=calRefDate||new Date(); if(calView==="month"){ const x=new Date(b); x.setDate(1); x.setMonth(x.getMonth()+dir); return x; } return addDays(b, dir*(calView==="week"?7:1)); }
 
 // asigna carriles a eventos que se solapan (para ponerlos lado a lado)
 function packDay(events){
@@ -320,33 +321,21 @@ function packDay(events){
   flush(); return out;
 }
 
-function renderCalendar(){
-  const root=$("calRoot"); if(!root) return;
-  if(!calRefDate) calRefDate=new Date();
-  const isWeek = calView==="week";
-  const days = isWeek ? Array.from({length:7},(_,i)=>addDays(startOfWeek(calRefDate),i)) : [stripT(calRefDate)];
-  let meets = meetingLeads(); if(calDev) meets=meets.filter(l=>l.developer===calDev);
-  const byDate={}; meets.forEach(l=>{ (byDate[l.fechaReunion]=byDate[l.fechaReunion]||[]).push(l); });
+function monthCells(ref){
+  const first = new Date(ref.getFullYear(), ref.getMonth(), 1);
+  const lead = (first.getDay()+6)%7;                       // lunes = 0
+  const dim = new Date(ref.getFullYear(), ref.getMonth()+1, 0).getDate();
+  const weeks = Math.ceil((lead + dim) / 7);
+  const start = addDays(first, -lead);
+  return Array.from({length: weeks*7}, (_,i)=>addDays(start, i));
+}
+function timeBoard(days, byDate, todayStr){
   let startH=8, endH=20;
   days.forEach(d=>{ (byDate[iso(d)]||[]).forEach(l=>{ const s=timeToMin(l.horaReunion); startH=Math.min(startH,Math.floor(s/60)); endH=Math.max(endH,Math.ceil((s+MEET_MIN)/60)); }); });
   startH=Math.max(0,startH); endH=Math.min(24,Math.max(endH,startH+4));
-  const gridH=(endH-startH)*CAL_HPX, todayStr=todayISO();
-  const visCount = days.reduce((n,d)=>n+(byDate[iso(d)]||[]).length,0);
-  const title = isWeek ? (MONTHS[days[0].getMonth()]+" "+days[0].getFullYear())
-                       : (DOW[days[0].getDay()]+" "+days[0].getDate()+" "+MONTHS[days[0].getMonth()].toLowerCase()+" "+days[0].getFullYear());
-
-  let html = `<div class="cal-top"><div class="cal-nav">`+
-      `<button class="cal-navbtn" data-cal="prev" title="Anterior">${ic("chevL")}</button>`+
-      `<button class="cal-today" data-cal="today">Hoy</button>`+
-      `<button class="cal-navbtn" data-cal="next" title="Siguiente">${ic("chevR")}</button>`+
-      `<div class="cal-title">${esc(title)}</div></div>`+
-    `<div class="cal-toggle"><button class="${calView==='day'?'on':''}" data-cal="day">Día</button><button class="${calView==='week'?'on':''}" data-cal="week">Semana</button></div></div>`+
-    `<div class="cal-devs"><button class="devchip${calDev===''?' on':''}" data-dev="">Todos</button>`+
-      DEVELOPERS.map(d=>`<button class="devchip dev-${d}${calDev===d?' on':''}" data-dev="${d}"><span class="devdot"></span>${d}</button>`).join("")+
-      `<span class="cal-count mono">${visCount} ${visCount===1?'reunión':'reuniones'}</span></div>`;
-
+  const gridH=(endH-startH)*CAL_HPX;
   const colTpl = `54px repeat(${days.length},minmax(0,1fr))`;
-  html += `<div class="cal-board"><div class="cal-dayrow" style="grid-template-columns:${colTpl}"><div class="cal-corner"></div>`+
+  let html = `<div class="cal-board"><div class="cal-dayrow" style="grid-template-columns:${colTpl}"><div class="cal-corner"></div>`+
     days.map(d=>{ const t=iso(d)===todayStr; return `<button class="cal-dh${t?' today':''}" data-cal="goday" data-d="${iso(d)}"><span class="dow">${DOW[d.getDay()]}</span><span class="dnum">${d.getDate()}</span></button>`; }).join("")+
     `</div><div class="cal-grid" style="grid-template-columns:${colTpl}">`;
   let timeCol = `<div class="cal-time" style="height:${gridH}px">`;
@@ -366,8 +355,54 @@ function renderCalendar(){
     });
     html += col + `</div>`;
   });
-  html += `</div></div>`;
-  root.innerHTML = html;
+  return html + `</div></div>`;
+}
+function monthBoard(cells, byDate, todayStr, month){
+  const wd = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  let html = `<div class="cal-board"><div class="cal-mhead">`+wd.map(d=>`<div>${d}</div>`).join("")+`</div><div class="cal-mgrid">`;
+  cells.forEach(d=>{
+    const ds=iso(d), inM=d.getMonth()===month, t=ds===todayStr;
+    const ms=(byDate[ds]||[]).slice().sort((a,b)=>timeToMin(a.horaReunion)-timeToMin(b.horaReunion));
+    const shown=ms.slice(0,3), more=ms.length-shown.length;
+    html += `<button class="cal-cell${inM?'':' out'}${t?' today':''}" data-cal="goday" data-d="${ds}">`+
+      `<span class="cnum">${d.getDate()}</span>`+
+      shown.map(l=>`<span class="cal-mev${l.developer?' dev-'+esc(l.developer):''}" data-cal="ev" data-leadid="${escAttr(l.extId)}"><b>${esc(l.horaReunion||'')}</b> ${esc(l.nombre)}</span>`).join("")+
+      (more>0?`<span class="cal-more">+${more} más</span>`:"")+`</button>`;
+  });
+  return html + `</div></div>`;
+}
+function renderCalendar(){
+  const root=$("calRoot"); if(!root) return;
+  if(!calRefDate) calRefDate=new Date();
+  let meets = meetingLeads(); if(calDev) meets=meets.filter(l=>l.developer===calDev);
+  const byDate={}; meets.forEach(l=>{ (byDate[l.fechaReunion]=byDate[l.fechaReunion]||[]).push(l); });
+  const todayStr=todayISO();
+  let title, board, visCount;
+  if(calView==="month"){
+    title = MONTHS[calRefDate.getMonth()]+" "+calRefDate.getFullYear();
+    const cells = monthCells(calRefDate);
+    visCount = cells.filter(d=>d.getMonth()===calRefDate.getMonth()).reduce((n,d)=>n+(byDate[iso(d)]||[]).length,0);
+    board = monthBoard(cells, byDate, todayStr, calRefDate.getMonth());
+  } else {
+    const days = calView==="week" ? Array.from({length:7},(_,i)=>addDays(startOfWeek(calRefDate),i)) : [stripT(calRefDate)];
+    title = calView==="week" ? (MONTHS[days[0].getMonth()]+" "+days[0].getFullYear())
+                             : (DOW[days[0].getDay()]+" "+days[0].getDate()+" "+MONTHS[days[0].getMonth()].toLowerCase()+" "+days[0].getFullYear());
+    visCount = days.reduce((n,d)=>n+(byDate[iso(d)]||[]).length,0);
+    board = timeBoard(days, byDate, todayStr);
+  }
+  const header = `<div class="cal-top"><div class="cal-nav">`+
+      `<button class="cal-navbtn" data-cal="prev" title="Anterior">${ic("chevL")}</button>`+
+      `<button class="cal-today" data-cal="today">Hoy</button>`+
+      `<button class="cal-navbtn" data-cal="next" title="Siguiente">${ic("chevR")}</button>`+
+      `<div class="cal-title">${esc(title)}</div></div>`+
+    `<div class="cal-toggle">`+
+      `<button class="${calView==='day'?'on':''}" data-cal="day">Día</button>`+
+      `<button class="${calView==='week'?'on':''}" data-cal="week">Semana</button>`+
+      `<button class="${calView==='month'?'on':''}" data-cal="month">Mes</button></div></div>`+
+    `<div class="cal-devs"><button class="devchip${calDev===''?' on':''}" data-dev="">Todos</button>`+
+      DEVELOPERS.map(d=>`<button class="devchip dev-${d}${calDev===d?' on':''}" data-dev="${d}"><span class="devdot"></span>${d}</button>`).join("")+
+      `<span class="cal-count mono">${visCount} ${visCount===1?'reunión':'reuniones'}</span></div>`;
+  root.innerHTML = header + board;
 }
 function openLeadFromCalendar(id){ const l=byId[id]; if(!l) return; showView("leads"); const q=$("q"); q.value=l.nombre; Q=l.nombre; applyFilters(); }
 
