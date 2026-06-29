@@ -254,6 +254,8 @@ function setupNav() {
   $("navToggle").addEventListener("click", e => { e.stopPropagation(); $("mainnav").classList.toggle("open"); });
   document.addEventListener("click", e => { if (!e.target.closest("#mainnav") && !e.target.closest("#navToggle")) $("mainnav").classList.remove("open"); });
   $("brandHome").addEventListener("click", () => window.scrollTo({ top:0, behavior:"smooth" }));
+  // recalcular la altura del calendario al redimensionar (para que siga llenando la pantalla)
+  let calRT; window.addEventListener("resize", () => { clearTimeout(calRT); calRT = setTimeout(() => { if (currentView === "calendario") renderCalendar(); }, 180); });
   // estado inicial del calendario (vista guardada o según ancho)
   try { calView = localStorage.getItem("cc_calview") || (window.innerWidth < 760 ? "day" : "week"); }
   catch(e){ calView = window.innerWidth < 760 ? "day" : "week"; }
@@ -330,26 +332,32 @@ function monthCells(ref){
   return Array.from({length: weeks*7}, (_,i)=>addDays(start, i));
 }
 function timeBoard(days, byDate, todayStr){
-  let startH=8, endH=20;
-  days.forEach(d=>{ (byDate[iso(d)]||[]).forEach(l=>{ const s=timeToMin(l.horaReunion); startH=Math.min(startH,Math.floor(s/60)); endH=Math.max(endH,Math.ceil((s+MEET_MIN)/60)); }); });
-  startH=Math.max(0,startH); endH=Math.min(24,Math.max(endH,startH+4));
-  const gridH=(endH-startH)*CAL_HPX;
+  // rango por minutos: 08:00–20:30 por defecto, se amplía si hay reuniones fuera
+  let startMin=8*60, endMin=20*60+30;
+  days.forEach(d=>{ (byDate[iso(d)]||[]).forEach(l=>{ const s=timeToMin(l.horaReunion); startMin=Math.min(startMin,Math.floor(s/60)*60); endMin=Math.max(endMin,Math.ceil((s+MEET_MIN)/30)*30); }); });
+  startMin=Math.max(0,startMin); endMin=Math.min(1440,endMin);
+  const hours=(endMin-startMin)/60;
+  // altura de hora dinámica para que el día entero quepa y llene la pantalla
+  const availH=(typeof window!=="undefined"?window.innerHeight:900)-240;
+  const HPX=Math.max(50,Math.min(96,availH/hours));
+  const gridH=hours*HPX;
+  const fmtHM=m=>String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");
   const colTpl = `54px repeat(${days.length},minmax(0,1fr))`;
   let html = `<div class="cal-board"><div class="cal-dayrow" style="grid-template-columns:${colTpl}"><div class="cal-corner"></div>`+
     days.map(d=>{ const t=iso(d)===todayStr; return `<button class="cal-dh${t?' today':''}" data-cal="goday" data-d="${iso(d)}"><span class="dow">${DOW[d.getDay()]}</span><span class="dnum">${d.getDate()}</span></button>`; }).join("")+
     `</div><div class="cal-grid" style="grid-template-columns:${colTpl}">`;
   let timeCol = `<div class="cal-time" style="height:${gridH}px">`;
-  for(let h=startH; h<=endH; h++) timeCol += `<div class="cal-hr" style="top:${(h-startH)*CAL_HPX}px">${String(h).padStart(2,"0")}:00</div>`;
-  timeCol += `</div>`;
+  for(let m=startMin; m<endMin; m+=60){ const cls = m===startMin ? " cal-hr-first" : ""; timeCol += `<div class="cal-hr${cls}" style="top:${(m-startMin)/60*HPX}px">${fmtHM(m)}</div>`; }
+  timeCol += `<div class="cal-hr cal-hr-end" style="top:${gridH}px">${fmtHM(endMin)}</div></div>`;   // última (20:30) anclada arriba de la línea
   html += timeCol;
   days.forEach(d=>{
     const t=iso(d)===todayStr;
     const packed=packDay((byDate[iso(d)]||[]).map(l=>{ const s=timeToMin(l.horaReunion); return {l,s,e:s+MEET_MIN}; }));
-    let col=`<div class="cal-col${t?' today':''}" style="height:${gridH}px;background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% ${CAL_HPX}px">`;
+    let col=`<div class="cal-col${t?' today':''}" style="height:${gridH}px;background-image:linear-gradient(var(--line) 1px,transparent 1px);background-size:100% ${HPX}px">`;
     packed.forEach(ev=>{
-      const l=ev.l, top=(ev.s-startH*60)/60*CAL_HPX, hgt=MEET_MIN/60*CAL_HPX, w=100/ev.cols, left=ev.lane*w, dev=l.developer||"";
+      const l=ev.l, top=(ev.s-startMin)/60*HPX, hgt=MEET_MIN/60*HPX, w=100/ev.cols, left=ev.lane*w, dev=l.developer||"";
       col += `<div class="cal-ev${dev?' dev-'+esc(dev):''}${l.estado==='vendido'?' sold':''}" data-cal="ev" data-leadid="${escAttr(l.extId)}" `+
-        `style="top:${top}px;height:${hgt-3}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px)">`+
+        `style="top:${top}px;height:${Math.max(hgt-3,20)}px;left:calc(${left}% + 2px);width:calc(${w}% - 4px)">`+
         `<div class="ev-t mono">${esc(l.horaReunion||"")}</div><div class="ev-n">${esc(l.nombre)}</div>`+
         (dev?`<div class="ev-d">${esc(dev)}${l.estado==='vendido'?' · venta':''}</div>`:"")+`</div>`;
     });
